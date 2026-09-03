@@ -7,6 +7,33 @@ import chess
 # Import time runs once per game, inside a 60 second budget, before your clock starts.
 # Load weights and build tables out here, not inside get_move.
 
+# Assign Values to each piece (can be changed)
+
+PIECE_VALUES: dict[chess.PieceType, int] = {
+    chess.PAWN: 100,
+    chess.KNIGHT: 320,
+    chess.BISHOP: 330,
+    chess.ROOK: 500,
+    chess.QUEEN: 900,
+}
+
+MATE_SCORE = 1_000_000
+
+# Create function to calculate material score of a board
+
+def material_score(board: chess.Board, side: chess.Color) -> int:
+    """Return side's material advantage."""
+    score = 0
+
+    for piece_type, value in PIECE_VALUES.items():
+        own_pieces = len(board.pieces(piece_type, side))
+        opponent_pieces = len(board.pieces(piece_type, not side))
+
+        score += value * (own_pieces - opponent_pieces)
+
+    return score
+
+# Try every legal move and select the best material result.
 
 def get_move(fen: str, time_left_ms: int) -> str:
     """Return a legal move in UCI notation.
@@ -23,7 +50,27 @@ def get_move(fen: str, time_left_ms: int) -> str:
     """
     board = chess.Board(fen)
 
-    # Everything from here down is yours to replace. baselines/greedy searches one ply,
-    # baselines/minimax searches two. Neither is strong. Reading them is the fastest way
-    # to see the shape of a search, and beating them is the first real milestone.
-    return random.choice(list(board.legal_moves)).uci()
+    mover = board.turn
+    moves = list(board.legal_moves)
+
+    if not moves:
+        raise ValueError("No legal moves available")
+
+    best_score = -MATE_SCORE
+    best_moves: list[chess.Move] = []
+
+    for move in moves:
+        board.push(move)
+
+        score = MATE_SCORE if board.is_checkmate() else material_score(board, mover)
+
+        board.pop()
+
+        if score > best_score:
+            best_score = score
+            best_moves = [move]
+        elif score == best_score:
+            best_moves.append(move)
+
+    # Randomly selects one of the best moves if there are multiple to avoid stalemate by repetition
+    return random.choice(best_moves).uci()
