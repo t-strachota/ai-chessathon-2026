@@ -1,7 +1,6 @@
 """The submission entrypoint. The platform imports this file and calls get_move."""
 
 import random
-
 import chess
 
 # Import time runs once per game, inside a 60 second budget, before your clock starts.
@@ -19,6 +18,7 @@ PIECE_VALUES: dict[chess.PieceType, int] = {
 
 MATE_SCORE = 1_000_000
 MOBILITY_WEIGHT = 4
+SEARCH_DEPTH = 2
 
 # Create function to calculate material score of a board
 
@@ -39,29 +39,56 @@ def position_score(board: chess.Board, side: chess.Color) -> int:
     if board.is_checkmate():
         return -MATE_SCORE if board.turn == side else MATE_SCORE
 
-    if board.is_stalemate():
+    if board.is_stalemate() or board.is_insufficient_material():
         return 0
 
     mobility = len(list(board.legal_moves))
-    return material_score(board, side) + MOBILITY_WEIGHT * mobility
+    mobility_sign = 1 if board.turn == side else -1
 
-def worst_reply_score(board: chess.Board, mover: chess.Color) -> int:
-    """Return the score after the opponent's best reply."""
-    replies = list(board.legal_moves)
+    return material_score(board, side) + mobility_sign * MOBILITY_WEIGHT * mobility
 
-    if not replies:
+def alpha_beta(
+      board: chess.Board, depth: int,
+      alpha: int, beta: int,
+      maximizing: bool,
+      mover: chess.Color,) -> int:
+    """Search a position using minimax with alpha-beta pruning."""
+
+    if depth == 0 or board.is_game_over(claim_draw=True):
         return position_score(board, mover)
 
-    worst_score = MATE_SCORE
+    moves = list(board.legal_moves)
 
-    for reply in replies:
-        board.push(reply)
-        score = position_score(board, mover)
+    if maximizing:
+        value = -MATE_SCORE
+
+        for move in moves:
+            board.push(move)
+            score = alpha_beta(board, depth - 1, alpha, beta, False, mover)
+            board.pop()
+
+            value = max(value, score)
+            alpha = max(alpha, value)
+
+            if alpha >= beta:
+                break
+
+        return value
+
+    value = MATE_SCORE
+
+    for move in moves:
+        board.push(move)
+        score = alpha_beta(board, depth - 1, alpha, beta, True, mover)
         board.pop()
 
-        worst_score = min(worst_score, score)
+        value = min(value, score)
+        beta = min(beta, value)
 
-    return worst_score
+        if alpha >= beta:
+            break
+
+    return value
 
 # Try every legal move and select the best material result.
 
@@ -92,7 +119,7 @@ def get_move(fen: str, time_left_ms: int) -> str:
     for move in moves:
         board.push(move)
 
-        score = worst_reply_score(board, mover)
+        score = alpha_beta(board, SEARCH_DEPTH - 1, -MATE_SCORE, MATE_SCORE, False, mover,)
 
         board.pop()
 
