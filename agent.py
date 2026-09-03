@@ -47,6 +47,12 @@ def position_score(board: chess.Board, side: chess.Color) -> int:
 
     return material_score(board, side) + mobility_sign * MOBILITY_WEIGHT * mobility
 
+def ordered_moves(board: chess.Board) -> list[chess.Move]:
+    """Return legal moves with captures before quiet moves."""
+    moves = list(board.legal_moves)
+    moves.sort(key=board.is_capture, reverse=True)
+    return moves
+
 def alpha_beta(
       board: chess.Board, depth: int,
       alpha: int, beta: int,
@@ -54,10 +60,13 @@ def alpha_beta(
       mover: chess.Color,) -> int:
     """Search a position using minimax with alpha-beta pruning."""
 
-    if depth == 0 or board.is_game_over(claim_draw=True):
+    if depth == 0 or board.is_insufficient_material():
         return position_score(board, mover)
 
-    moves = list(board.legal_moves)
+    moves = ordered_moves(board)
+
+    if not moves:
+        return position_score(board, mover)
 
     if maximizing:
         value = -MATE_SCORE
@@ -108,7 +117,7 @@ def get_move(fen: str, time_left_ms: int) -> str:
     board = chess.Board(fen)
 
     mover = board.turn
-    moves = list(board.legal_moves)
+    moves = ordered_moves(board)
 
     if not moves:
         raise ValueError("No legal moves available")
