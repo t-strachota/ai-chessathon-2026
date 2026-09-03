@@ -1,6 +1,8 @@
 """The submission entrypoint. The platform imports this file and calls get_move."""
 
 import random
+import time
+
 import chess
 
 # Import time runs once per game, inside a 60 second budget, before your clock starts.
@@ -18,7 +20,14 @@ PIECE_VALUES: dict[chess.PieceType, int] = {
 
 MATE_SCORE = 1_000_000
 MOBILITY_WEIGHT = 4
-SEARCH_DEPTH = 2
+
+MAX_SEARCH_DEPTH = 10
+MAX_THINK_MS = 1_000
+CLOCK_MARGIN_MS = 100
+EXPECTED_MOVES_LEFT = 40
+
+class SearchTimeoutError(Exception):
+    """Signal that the current search has run out of time."""
 
 # Create function to calculate material score of a board
 
@@ -47,18 +56,43 @@ def position_score(board: chess.Board, side: chess.Color) -> int:
 
     return material_score(board, side) + mobility_sign * MOBILITY_WEIGHT * mobility
 
+def move_order_key(board: chess.Board, move: chess.Move,) -> tuple[int, int, int]:
+    """Prioritize captures by victim value, then attacker value."""
+
+    if not board.is_capture(move):
+        return (0, 0, 0)
+
+    attacker = board.piece_at(move.from_square)
+
+    if board.is_en_passant(move):
+        victim_value = PIECE_VALUES[chess.PAWN]
+    else:
+        victim = board.piece_at(move.to_square)
+        victim_value = (
+            0
+            if victim is None
+            else PIECE_VALUES.get(victim.piece_type, 0))
+
+    attacker_value = (
+        MATE_SCORE
+        if attacker is None
+        else PIECE_VALUES.get(attacker.piece_type, MATE_SCORE)
+    )
+
+    return (1, victim_value, -attacker_value)
+
 def ordered_moves(board: chess.Board) -> list[chess.Move]:
-    """Return legal moves with captures before quiet moves."""
+    """Return legal moves in an alpha-beta-friendly order."""
     moves = list(board.legal_moves)
-    moves.sort(key=board.is_capture, reverse=True)
+    moves.sort(key=lambda move: move_order_key(board, move), reverse=True,)
     return moves
 
-def alpha_beta(
-      board: chess.Board, depth: int,
-      alpha: int, beta: int,
-      maximizing: bool,
-      mover: chess.Color,) -> int:
+def alpha_beta(board: chess.Board, depth: int, alpha: int, beta: int,
+    maximizing: bool, mover: chess.Color, deadline: float,) -> int:
+
     """Search a position using minimax with alpha-beta pruning."""
+    if time.monotonic() >= deadline:
+        raise SearchTimeoutError
 
     if depth == 0 or board.is_insufficient_material():
         return position_score(board, mover)
@@ -73,8 +107,14 @@ def alpha_beta(
 
         for move in moves:
             board.push(move)
-            score = alpha_beta(board, depth - 1, alpha, beta, False, mover)
-            board.pop()
+
+            try:
+                score = alpha_beta(board,
+                      depth - 1, alpha,
+                      beta, False,
+                      mover, deadline,)
+            finally:
+                board.pop()
 
             value = max(value, score)
             alpha = max(alpha, value)
@@ -88,8 +128,14 @@ def alpha_beta(
 
     for move in moves:
         board.push(move)
-        score = alpha_beta(board, depth - 1, alpha, beta, True, mover)
-        board.pop()
+
+        try:
+            score = alpha_beta(board,
+                  depth - 1, alpha,
+                  beta, True,
+                  mover, deadline,)
+        finally:
+            board.pop()
 
         value = min(value, score)
         beta = min(beta, value)
@@ -98,6 +144,45 @@ def alpha_beta(
             break
 
     return value
+
+def search_at_depth(board: chess.Board,
+    mover: chess.Color, depth: int,
+    deadline: float,) -> chess.Move:
+
+    """Find the best move at one complete search depth."""
+    moves = ordered_moves(board)
+
+    if not moves:
+        raise ValueError("No legal moves available")
+
+    best_score = -MATE_SCORE
+    best_moves: list[chess.Move] = []
+
+    for move in moves:
+        if time.monotonic() >= deadline:
+            raise SearchTimeoutError
+
+        board.push(move)
+
+        try:
+            score = alpha_beta(
+                board,
+                depth - 1,
+                -MATE_SCORE,
+                MATE_SCORE,
+                False,
+                mover,
+                deadline,)
+        finally:
+            board.pop()
+
+        if score > best_score:
+            best_score = score
+            best_moves = [move]
+        elif score == best_score:
+            best_moves.append(move)
+
+    return random.choice(best_moves)
 
 # Try every legal move and select the best material result.
 
@@ -114,29 +199,29 @@ def get_move(fen: str, time_left_ms: int) -> str:
     print() is safe. Your stdout is redirected away from the protocol stream, discarded
     during rated games and shown back to you in the validation log.
     """
-    board = chess.Board(fen)
 
-    mover = board.turn
+    board = chess.Board(fen)
     moves = ordered_moves(board)
 
     if not moves:
         raise ValueError("No legal moves available")
 
-    best_score = -MATE_SCORE
-    best_moves: list[chess.Move] = []
+    mover = board.turn
 
-    for move in moves:
-        board.push(move)
+    # Always have a legal move available, even if the search times out immediately.
+    best_move = random.choice(moves)
 
-        score = alpha_beta(board, SEARCH_DEPTH - 1, -MATE_SCORE, MATE_SCORE, False, mover,)
+    usable_ms = max(1, time_left_ms - CLOCK_MARGIN_MS)
+    budget_ms = max(1,min(MAX_THINK_MS, usable_ms // EXPECTED_MOVES_LEFT),)
+    deadline = time.monotonic() + budget_ms / 1_000
 
-        board.pop()
+    for depth in range(1, MAX_SEARCH_DEPTH + 1):
+        try:
+            completed_move = search_at_depth(board, mover, depth, deadline)
+        except SearchTimeoutError:
+            break
 
-        if score > best_score:
-            best_score = score
-            best_moves = [move]
-        elif score == best_score:
-            best_moves.append(move)
+        # Only save a result after the entire depth completed successfully.
+        best_move = completed_move
 
-    # Randomly selects one of the best moves if there are multiple to avoid stalemate by repetition
-    return random.choice(best_moves).uci()
+    return best_move.uci()
