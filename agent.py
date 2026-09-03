@@ -33,6 +33,34 @@ def material_score(board: chess.Board, side: chess.Color) -> int:
 
     return score
 
+def position_score(board: chess.Board, side: chess.Color) -> int:
+    """Evaluate a position from side's perspective."""
+    if board.is_checkmate():
+        return -MATE_SCORE if board.turn == side else MATE_SCORE
+
+    if board.is_stalemate():
+        return 0
+
+    return material_score(board, side)
+
+def worst_reply_score(board: chess.Board, mover: chess.Color) -> int:
+    """Return the score after the opponent's best reply."""
+    replies = list(board.legal_moves)
+
+    if not replies:
+        return position_score(board, mover)
+
+    worst_score = MATE_SCORE
+
+    for reply in replies:
+        board.push(reply)
+        score = position_score(board, mover)
+        board.pop()
+
+        worst_score = min(worst_score, score)
+
+    return worst_score
+
 # Try every legal move and select the best material result.
 
 def get_move(fen: str, time_left_ms: int) -> str:
@@ -62,7 +90,7 @@ def get_move(fen: str, time_left_ms: int) -> str:
     for move in moves:
         board.push(move)
 
-        score = MATE_SCORE if board.is_checkmate() else material_score(board, mover)
+        score = worst_reply_score(board, mover)
 
         board.pop()
 
