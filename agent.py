@@ -18,6 +18,7 @@ PIECE_VALUES: dict[chess.PieceType, int] = {
 }
 
 MATE_SCORE = 1_000_000
+MOBILITY_WEIGHT = 4
 
 # Create function to calculate material score of a board
 
@@ -41,7 +42,8 @@ def position_score(board: chess.Board, side: chess.Color) -> int:
     if board.is_stalemate():
         return 0
 
-    return material_score(board, side)
+    mobility = len(list(board.legal_moves))
+    return material_score(board, side) + MOBILITY_WEIGHT * mobility
 
 def worst_reply_score(board: chess.Board, mover: chess.Color) -> int:
     """Return the score after the opponent's best reply."""
