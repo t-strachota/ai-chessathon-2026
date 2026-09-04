@@ -2,12 +2,12 @@
 
 Date: 4 September 2026
 
-Status: **in progress**. The combined root-alpha/principal-variation candidate was
+Status: **complete**. The combined root-alpha/principal-variation candidate was
 neutral at the official clock. Isolated follow-ups rejected PV carry and identified
 root-alpha-only as promising: 75.0% fast and 62.5% official, both without a loss. The
 current root adds piece-square tables and one bounded check extension; it scored 100.0%
 over six fast games and 60.0% over 10 official-clock games. It has been saved as
-**Ethan** and is ready to commit and promote.
+**Ethan**, committed, promoted to `main`, and pushed to GitHub.
 
 This document is a handoff for the next developer or AI agent. Read `AGENTS.md`, the
 live competition documentation, `Day1Log.md`, this file, and the current root `agent.py`
@@ -33,12 +33,12 @@ of reaching the 150s by the end of the day. Reliability remained non-negotiable:
 accepted candidate retained a legal fallback, deadline checks inside recursive search,
 and `try`/`finally` restoration around pushed moves.
 
-The current stable submission checkpoint is **Dylan**, committed on `main` at `8e6f887`.
-The current working branch is `feature/root-alpha-pv-ordering`, created from Dylan,
-although its name no longer describes the root exactly. PV carry was removed; the root
-now contains root-alpha pruning, piece-square tables, and one bounded check extension.
-Dylan remains the committed checkpoint, while the validated root candidate is now
-preserved under `past_models/Ethan` for promotion.
+The Day 2 work began from **Dylan** on `main` at `8e6f887`, using the development branch
+`feature/root-alpha-pv-ordering`. PV carry was ultimately removed; the final root
+contains root-alpha pruning, piece-square tables, and one bounded check extension. That
+validated agent is now the main submission and is preserved under `past_models/Ethan`.
+Dylan remains frozen as Ethan's comparison checkpoint, and the development branch has
+been deleted.
 
 ## Current repository state
 
@@ -75,7 +75,7 @@ The root and Dylan are expected to differ while the current experiment is active
 | Victor | ONNX evaluation plus fixed-depth negamax | `past_models/Victor` | `7a131c4` |
 | Charlie | Four-ply bounded quiescence search | `past_models/Charlie` | `ea16c4e` |
 | Dylan | Repetition, passed pawns, and king safety | `past_models/Dylan` | `8e6f887` |
-| Ethan | Root alpha, piece-square tables, and check extension | `past_models/Ethan` | pending |
+| Ethan | Root alpha, piece-square tables, and check extension | `past_models/Ethan` | `ecd2976` |
 
 Each saved model is a complete runnable opponent. Ethan must remain frozen after its
 promotion so it can serve as the next control.
@@ -680,21 +680,18 @@ limitations:
    the first proven equal best move.
 10. Local arenas use the standard starting position, unlike rated curated openings.
 
-## Remaining acceptance process
+## Promotion result
 
-The combined root-search experiment should not be promoted. Its isolated root-alpha
-component was retained, PV carry was rejected, and the current piece-square/check
-candidate has passed its initial gates. The remaining steps are:
-
-1. Keep Dylan unchanged as the stable control.
-2. Save the current root as the next named historical checkpoint before merging it.
-3. Do not restore PV carry without new evidence.
-4. Treat any crash, illegal move, or flag as an automatic rejection pending diagnosis.
-5. Re-run all four tactical regressions after any code change.
-6. Run the complete repository gate before packaging or merging.
-7. Build any eventual upload explicitly as `agent.zip` and verify that `agent.py` is at
-   its root.
-8. Uploading through the dashboard remains a manual user action.
+- The combined root-search experiment was not promoted. Root-alpha was retained and PV
+  carry was removed.
+- The final root-alpha, piece-square, and check-extension candidate was saved as Ethan.
+- Ethan and the root agent were verified byte-for-byte identical.
+- Static checks, tactical regressions, the safety gate, and package inspection passed.
+- Promotion commit `ecd2976` was fast-forwarded into `main` and pushed to GitHub.
+- The local development branch `feature/root-alpha-pv-ordering` was deleted after the
+  push. No remote copy of the feature branch existed.
+- `agent.zip` was built locally with `agent.py` at its root and is ignored by Git.
+- Uploading `agent.zip` through the competition dashboard remains a manual user action.
 
 The next larger search experiment should be a correctly bounded transposition table,
 added and benchmarked on a separate branch.
