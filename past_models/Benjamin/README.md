@@ -43,6 +43,56 @@ removed again, even when a timeout happens.
 - When several moves receive the same score, it chooses randomly between them.
 - Its time allocation is deliberately simple and assumes roughly 40 moves remain.
 
+## Benchmark results
+
+These benchmarks were run on 4 September 2026 using the local harness on an arm64
+computer with Python 3.14.2. Each row contains 50 games: Benjamin played 25 as White
+and 25 as Black. Every game began from the standard starting position.
+
+`Score` is the chess score percentage: a win is worth 1 point, a draw is worth half a
+point, and a loss is worth 0 points. It is therefore different from the win percentage.
+
+### Normal time: 10,000 ms + 100 ms per move
+
+This is the arena harness's default fast time control.
+
+| Opponent | Wins | Draws | Losses | Win % | Draw % | Loss % | Score | Checkmates | Repetitions |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `baselines/random` | 46 | 4 | 0 | 92% | 8% | 0% | 96% | 46 | 4 |
+| `baselines/greedy` | 49 | 1 | 0 | 98% | 2% | 0% | 99% | 49 | 1 |
+| `baselines/minimax` | 19 | 26 | 5 | 38% | 52% | 10% | 64% | 24 | 26 |
+| `baselines/numba` | 22 | 25 | 3 | 44% | 50% | 6% | 69% | 25 | 25 |
+| `past_models/Alfred` | 17 | 25 | 8 | 34% | 50% | 16% | 59% | 25 | 25 |
+| **Total** | **153** | **81** | **16** | **61.2%** | **32.4%** | **6.4%** | **77.4%** | **169** | **81** |
+
+### Longer time: 60,000 ms + 500 ms per move
+
+At this time control Benjamin reaches its built-in maximum allowance of 1,000 ms per
+move near the start of each game. A 120-second starting clock would not increase that
+maximum because `MAX_THINK_MS` is 1,000.
+
+| Opponent | Wins | Draws | Losses | Win % | Draw % | Loss % | Score | Checkmates | Repetitions |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `baselines/random` | 49 | 1 | 0 | 98% | 2% | 0% | 99% | 49 | 1 |
+| `baselines/greedy` | 48 | 2 | 0 | 96% | 4% | 0% | 98% | 48 | 2 |
+| `baselines/minimax` | 40 | 9 | 1 | 80% | 18% | 2% | 89% | 41 | 9 |
+| `baselines/numba` | 38 | 12 | 0 | 76% | 24% | 0% | 88% | 38 | 12 |
+| `past_models/Alfred` | 43 | 7 | 0 | 86% | 14% | 0% | 93% | 43 | 7 |
+| **Total** | **218** | **31** | **1** | **87.2%** | **12.4%** | **0.4%** | **93.4%** | **219** | **31** |
+
+### Combined result
+
+Across all 500 games, Benjamin scored **85.4%** with **371 wins, 112 draws, and 17
+losses**. That is a 74.2% win rate, 22.4% draw rate, and 3.4% loss rate. There were 388
+checkmates and 112 threefold-repetition draws. Benjamin had **no crashes, illegal moves,
+flag losses, or other technical failures**.
+
+The extra thinking time produced a much stronger result against minimax, numba, and
+Alfred. These numbers are useful local comparisons, but they are not an Elo estimate or
+a prediction of competition performance. The local arena always starts from ordinary
+chess's starting position, while competition games may use different openings. Random
+tie-breaking also means another run will not produce exactly the same totals.
+
 ## Testing against Benjamin
 
 From the repository root, with the virtual environment active, run 20 games with the
