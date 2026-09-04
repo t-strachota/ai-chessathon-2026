@@ -359,10 +359,15 @@ The expanded archive is far below the 50 MB competition limit. Rebuild it whenev
 root agent changes. Because it is ignored by Git, a clean `git status` does not prove
 the archive is current.
 
-The Day 1 checkpoint was created but not uploaded by the AI agent. The user intended to
-upload Benjamin as a non-final checkpoint. The competition platform makes the latest
-submission that passes validation the active agent, so inspect the validation log after
-uploading.
+The user uploaded the Day 1 checkpoint as a non-final submission. The platform reported
+`valid`. It expanded to 6,370 bytes, built successfully, and completed two 20-ply smoke
+games—one as each color—without an initialization error, crash, illegal move, or flag.
+Benjamin won both shortened smoke games by material adjudication. The Docker legacy-
+builder warning in the log came from the organizer's infrastructure and required no
+project change.
+
+The competition platform makes the latest submission that passes validation the active
+agent. A future upload therefore replaces Benjamin as the ladder agent once it validates.
 
 ## Competition contract checked on Day 1
 
@@ -397,6 +402,160 @@ Important values confirmed from the live documentation on 4 September 2026:
 
 Always fetch the live pages again before answering questions about deadlines, limits,
 allowed components, or competition operations.
+
+## Live ladder and rated-game review
+
+Benjamin's first live results were much weaker than its local baseline results. The
+dashboard showed this record after Round 4:
+
+```text
+0 wins, 1 draw, 3 losses
+0.5 points from 4 games
+12.5% chess score
+all three losses by checkmate
+```
+
+The public leaderboard had not yet incorporated Round 4 when checked. After Round 3 it
+listed Benjamin / Stocked Fish at provisional rank 150 of 167, rating 1234, with a
+0-1-2 record. The middle of the field was around rating 1500. These ratings had very few
+games behind them, but Benjamin was clearly underperforming the field at that point.
+
+Opponent context at the time of review:
+
+- Sun was near Benjamin at rank 151 and rating 1232; their draw was consistent with
+  similar provisional strength.
+- Prophylaxis was much stronger at rank 96 and rating 1462, so that loss was not
+  surprising.
+- OpenAnand was below Benjamin at approximately rating 1202 with two previous losses;
+  losing that game was the most concerning result.
+- Check Republic could not be confidently matched to a current public leaderboard row,
+  so no unsupported strength estimate was made.
+
+The local random and greedy results had been useful engineering gates, but not measures
+of average competition strength. The corresponding weak house bots were also near the
+bottom of the live ladder. The curated competition openings exposed weaknesses that the
+standard-start local arena did not.
+
+### Rated PGN files
+
+The four downloaded games were reviewed from:
+
+```text
+/Users/tobiasstrachota/Downloads/aichessathon-round-1-check-republic.pgn
+/Users/tobiasstrachota/Downloads/aichessathon-round-2-sun.pgn
+/Users/tobiasstrachota/Downloads/aichessathon-round-3-prophylaxis.pgn
+/Users/tobiasstrachota/Downloads/aichessathon-round-4-openanand.pgn
+```
+
+These files are in `Downloads`, not the repository. Do not assume they will exist on a
+different computer. Preserve copies in an appropriate test-fixture location if the user
+chooses to add regression tests.
+
+### Round 1: Check Republic
+
+Benjamin played Black and lost by checkmate. The first large mistake was:
+
+```text
+13...e4? 14.gxf5
+```
+
+This left the knight on f5 hanging. Replaying Benjamin's own evaluator showed `e4`
+tied for second at depth 2 but falling to 29th of 41 legal moves at depth 3. Benjamin
+probably completed depth 2 but not depth 3 within its one-second budget.
+
+White later established a pawn on g7 and promoted with `30.g8=Q+`. By Benjamin's
+`28...Bh2+`, the position was already badly lost; that check merely delayed promotion.
+The game demonstrates insufficient depth early and weak awareness of passed-pawn and
+promotion threats.
+
+### Round 2: Sun
+
+Benjamin played Black and drew by threefold repetition despite being materially winning.
+After `45...Rxa3`, Benjamin was ahead by about 1,130 evaluation units—more than a rook
+and pawn—and Sun had almost no time left. Benjamin shuffled its king and rook instead of
+converting the endgame, allowing the platform's automatic repetition claim.
+
+The root cause is not a protocol failure. Each `get_move` call builds a new board from
+FEN, which lacks the previous move stack. Benjamin therefore cannot see repetition
+history even though module state survives between its moves. This game motivates
+tracking position keys across calls and discouraging repeatable moves while materially
+ahead.
+
+### Round 3: Prophylaxis
+
+Benjamin played White and lost by checkmate. The sequence
+
+```text
+26.Ng4 Qxe1+
+27.Kxe1 Bxa1
+```
+
+exchanged Benjamin's two rooks for the opposing queen. `Ng4` still ranked first in
+Benjamin's depth-3 and depth-4 replays, so deeper search alone does not fully solve this
+game. Its evaluation underestimated the opponent's active rooks, Benjamin's exposed
+king, and the long-term power of connected passed pawns.
+
+Benjamin then gave many checks without improving its position while Black advanced the
+c- and d-pawns. The c-pawn eventually promoted with check after `69...c1=Q+`, enabling
+the final mating sequence. This game is direct evidence for passed-pawn, promotion-
+threat, king-safety, and endgame improvements.
+
+### Round 4: OpenAnand
+
+Benjamin played White and lost by checkmate after only ten moves from the supplied
+opening. This was the clearest horizon-effect failure:
+
+```text
+11.Nc4? dxc4
+12.Bxc4 Bxc4
+...
+14.b4? Bxb4
+15.Qd2? Bxc3
+16.O-O-O?? Qa3+
+17.Kb1 Bxa2#
+```
+
+Depth replays using Benjamin's own search produced:
+
+| Move | Shorter-search judgment | Depth-4 judgment |
+| --- | --- | --- |
+| `11.Nc4` | 1st at depth 3 | 36th of 46 |
+| `14.b4` | 1st at depth 2 | 16th of 36 |
+| `15.Qd2` | 1st at depth 3 | 27th of 34 |
+| `16.O-O-O` | tied 1st at depth 3 | 25th of 25; forced mate |
+
+At depth 4, `O-O-O` received `-1_000_000`, Benjamin's checkmate score. One additional
+ply exposed the exact mating move, but the live one-second search stopped immediately
+before it.
+
+### Clock evidence
+
+Benjamin consumed approximately one second per move. With the 500 ms increment, its
+displayed clock usually decreased by only about 500 ms per turn. Approximate clock time
+remaining after its last move in each game was:
+
+| Round | Benjamin's color | Remaining clock |
+| --- | --- | ---: |
+| Check Republic | Black | 106 seconds |
+| Sun | Black | 96 seconds |
+| Prophylaxis | White | 88 seconds |
+| OpenAnand | White | 115 seconds |
+
+Benjamin was therefore losing or drawing while leaving most of its clock unused. The
+formula `(remaining time - margin) / 40` would initially allocate about 3,000 ms, but
+`MAX_THINK_MS = 1_000` overrides it. More time would have allowed deeper completed
+searches in at least some critical positions. It will not solve every weakness: Round
+3's `Ng4` remained preferred at depth 4 because the evaluation itself was incomplete.
+
+### Rated-game conclusion
+
+Benjamin's deployment reliability was excellent, but the PGNs identify four chess
+weaknesses in priority order:
+
+1. It underuses the official clock.
+2. It stops on tactically unstable positions—the horizon effect.
+3. It does not know repetition history or convert winning endings reliably.
+4. It undervalues king safety and dangerous passed pawns.
 
 ## Known limitations and risks
 
@@ -433,25 +592,131 @@ allowed components, or competition operations.
 3. Confirm the workspace state and do not commit `.DS_Store`.
 4. Confirm `agent.py` still matches Benjamin before branching.
 5. Create a new feature branch from `main`.
-6. Choose one engine improvement, explain it to the user, and let the user implement it
-   if they ask for guidance rather than direct implementation.
-7. Run Ruff, mypy, focused position tests, and small smoke games first.
-8. Benchmark against Benjamin and the stronger baselines using even game counts.
-9. Compare results at identical time controls and watch for flags or crashes.
-10. Merge only after the change is demonstrably safer or stronger.
-11. Preserve the next successful root agent as another named model before replacing it.
+6. Turn the rated failures into focused regression positions before optimizing broadly.
+7. Implement and measure the priority plan below one stage at a time.
+8. Run Ruff, mypy, focused position tests, and small smoke games before a large arena.
+9. Benchmark against Benjamin and the stronger baselines using even game counts.
+10. Compare results at identical time controls and watch for flags or crashes.
+11. Merge only after the change is demonstrably safer or stronger.
+12. Preserve the next successful root agent as another named model before replacing it.
 
-A sensible first Day 2 improvement is **quiescence search**, because it directly
-addresses evaluations that stop during unresolved capture sequences. A simpler
-alternative is expanding move ordering to prioritize promotions and checks. Evaluation
-improvements such as piece-square tables and king safety are also valuable, but change
-playing strength rather than search reliability. Implement and measure one idea at a
-time.
+### Priority 0: rated-position regression checks
+
+Extract at least these positions from the PGNs into a test or diagnostic script outside
+`harness/`:
+
+- Round 1 immediately before `13...e4`;
+- Round 2 before the late repetition cycle while Benjamin is materially ahead;
+- Round 3 before the connected passed pawns become decisive;
+- Round 4 before `11.Nc4`, `15.Qd2`, and `16.O-O-O`.
+
+Key single-position FENs are preserved here in case the downloaded PGNs are unavailable:
+
+```text
+# Round 1, before 13...e4
+r3k2r/pp1b1pbp/3p2p1/q1pPpnB1/6P1/3P3P/PPP1NPB1/R2QR1K1 b kq - 0 13
+
+# Round 3, before 26.Ng4
+1r5r/1ppk4/p2pp2p/4q1p1/PP1b4/3QN1PP/6P1/R2KR3 w - - 2 26
+
+# Round 3, before 62.Kc4 with connected passed pawns advancing
+8/4b3/3kp3/6p1/3p1r1r/2pK2Q1/8/8 w - - 6 62
+
+# Round 4, before 11.Nc4
+r2qkb1r/1p3ppp/p1n1bn2/3pp3/4P3/N1N1BP2/PPPQ2PP/R3KB1R w KQkq - 0 11
+
+# Round 4, before 15.Qd2
+r3k2r/1p3ppp/p1n2n2/q3p3/1bb1P3/2N1BP2/P1P3PP/R2QK2R w KQkq - 0 15
+
+# Round 4, before 16.O-O-O
+r3k2r/1p3ppp/p1n2n2/q3p3/2b1P3/2b1BP2/P1PQ2PP/R3K2R w KQkq - 0 16
+```
+
+Round 2 repetition cannot be reproduced from one FEN because FEN does not contain the
+full position history. Its regression must replay the late-game sequence or initialize
+the proposed module-state tracker with the relevant earlier position keys.
+
+The most important hard assertion is that the new agent must reject Round 4's
+`16.O-O-O`, because depth 4 proves it leads to forced mate. Tests should use FENs and
+legal-move assertions; never edit `harness/` to make the agent pass.
+
+### Priority 1: use more of the clock
+
+Start with an isolated time-management experiment. Raise `MAX_THINK_MS` from 1,000 ms
+to approximately 3,000 ms while leaving evaluation unchanged. The existing division by
+`EXPECTED_MOVES_LEFT = 40` already reduces the budget as the clock falls, so 3,000 ms is
+approximately the natural opening allocation at the official 120-second clock.
+
+Acceptance criteria:
+
+- no flags in official-clock smoke games;
+- the last fully completed depth is still returned on timeout;
+- the Round 4 critical positions reach enough depth to reject the tactical blunders;
+- measurable improvement against Benjamin or stronger baselines.
+
+Do not merge a time increase based only on theoretical depth. Test it on the platform-
+like one-core harness because the laptop and competition server have different speeds.
+
+### Priority 2: quiescence or forcing-move extensions
+
+At ordinary depth-zero leaves, continue searching tactically unstable moves such as
+captures and promotions. Carefully selected checking moves may also need extensions.
+This should expose sequences such as `Nc4 dxc4 Bxc4 Bxc4` without requiring every quiet
+branch to reach depth 4.
+
+Requirements:
+
+- carry the existing deadline through every extension;
+- retain `try`/`finally` around every pushed move;
+- order promotions, checks, and valuable captures early;
+- impose a sensible extension limit or quiet-position stopping rule;
+- verify that search does not explode and cause flags.
+
+### Priority 3: repetition awareness and conversion
+
+Use module state to track prior position keys during the current game. The process is
+fresh for each game, so game state does not need to survive between games. A position
+key must account for piece placement, side to move, castling rights, and en-passant
+state—not the halfmove/fullmove counters.
+
+When materially ahead, penalize moves that permit automatic threefold repetition and
+prefer irreversible progress such as safe pawn moves or captures. Test this against the
+late Round 2 position. Take care not to reject a draw when Benjamin is losing and a
+repetition is the best result.
+
+### Priority 4: improve strategic evaluation
+
+After search reliability improves, add evaluation terms incrementally:
+
+1. dangerous passed pawns, scaled more strongly as they approach promotion;
+2. immediate promotion threats;
+3. king safety and exposed-king penalties;
+4. piece-square tables and development;
+5. pawn structure.
+
+Round 3 is the primary regression game for these changes. Do not add all terms in one
+commit; otherwise it will be impossible to know which term helped or hurt.
+
+### Day 2 benchmarking gate
+
+For each priority stage:
+
+1. Run the rated-position checks.
+2. Run Ruff and mypy.
+3. Play two official-clock smoke games, one as each color.
+4. Play a small 10- or 20-game arena against Benjamin and minimax.
+5. If promising, expand to at least 50 games per important opponent.
+6. Run matches sequentially so deadline tests receive uncontested CPU.
+7. Reject any version that introduces crashes, illegal moves, or flags.
+
+The first four live games are too small a sample to estimate final Elo, but they are
+high-value regression cases because the exact failure sequences are known. Implement
+and measure one idea at a time.
 
 Suggested branch command:
 
 ```bash
-git switch -c feature/quiescence-search
+git switch -c feature/time-management
 ```
 
 Do not assume that a more sophisticated idea is stronger. Keep Benjamin fixed and let
@@ -467,7 +732,7 @@ git pull --ff-only origin main
 git diff --no-index agent.py past_models/Benjamin/agent.py
 python -m ruff check .
 python -m mypy
-git switch -c feature/quiescence-search
+git switch -c feature/time-management
 ```
 
 If `git pull` would overwrite local work or the initial status is not clean, stop and
