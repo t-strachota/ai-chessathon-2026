@@ -1,8 +1,8 @@
 # Benjamin
 
-Benjamin is a saved copy of the main candidate agent at the point when it used
-alpha-beta search, improved move ordering, and dynamic search depth. It is kept here so
-future versions can be tested against it.
+Benjamin is a saved copy of the current main candidate agent. It uses alpha-beta
+search, improved move ordering, dynamic search depth, and a three-second maximum
+thinking-time allowance. It is kept here so future versions can be tested against it.
 
 Benjamin is a traditional chess-search program, not a machine-learning model. It does
 not learn while playing and it does not use a neural network.
@@ -28,8 +28,10 @@ not learn while playing and it does not use a neural network.
 ## Time management
 
 Benjamin keeps a 100 ms safety margin, divides its remaining usable time across an
-estimated 40 moves, and never deliberately spends more than 1,000 ms on one move. Its
-maximum search depth is 10, although the clock normally stops it earlier.
+estimated 40 moves, and never deliberately spends more than 3,000 ms on one move. Its
+maximum search depth is 10, although the clock normally stops it earlier. The remaining
+clock still controls the actual budget, so the engine automatically spends less time
+when its clock is low.
 
 It selects a legal fallback move before searching. If time expires during a deeper
 search, it abandons that incomplete result and safely returns the last fully completed
@@ -43,11 +45,27 @@ removed again, even when a timeout happens.
 - When several moves receive the same score, it chooses randomly between them.
 - Its time allocation is deliberately simple and assumes roughly 40 moves remain.
 
-## Benchmark results
+## Three-second update
 
-These benchmarks were run on 4 September 2026 using the local harness on an arm64
-computer with Python 3.14.2. Each row contains 50 games: Benjamin played 25 as White
-and 25 as Black. Every game began from the standard starting position.
+On 4 September 2026, `MAX_THINK_MS` was increased from 1,000 ms to 3,000 ms. Benjamin
+had been finishing rated games with most of its clock unused, and several tactical
+mistakes disappeared when the search had enough time to complete another depth.
+
+The updated version was tested against the original one-second Benjamin over 10 games
+at the official local clock of 120,000 ms plus 500 ms per move, alternating colours. It
+scored **5 wins, 5 draws, and 0 losses: a 75% chess score**. Five games ended by
+checkmate and five by threefold repetition. There were no crashes, illegal moves, or
+flag losses.
+
+This is encouraging evidence rather than a precise strength estimate because 10 games
+is still a small sample.
+
+## Day 1 benchmark results
+
+These benchmarks were run on 4 September 2026 using the original one-second Benjamin,
+before the three-second update. The local harness ran on an arm64 computer with Python
+3.14.2. Each row contains 50 games: Benjamin played 25 as White and 25 as Black. Every
+game began from the standard starting position.
 
 `Score` is the chess score percentage: a win is worth 1 point, a draw is worth half a
 point, and a loss is worth 0 points. It is therefore different from the win percentage.
@@ -67,9 +85,9 @@ This is the arena harness's default fast time control.
 
 ### Longer time: 60,000 ms + 500 ms per move
 
-At this time control Benjamin reaches its built-in maximum allowance of 1,000 ms per
-move near the start of each game. A 120-second starting clock would not increase that
-maximum because `MAX_THINK_MS` is 1,000.
+At this time control, the original Day 1 version reached its built-in maximum allowance
+of 1,000 ms per move near the start of each game. These results therefore describe the
+one-second checkpoint, not the current three-second version.
 
 | Opponent | Wins | Draws | Losses | Win % | Draw % | Loss % | Score | Checkmates | Repetitions |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -95,8 +113,8 @@ tie-breaking also means another run will not produce exactly the same totals.
 
 ## Testing against Benjamin
 
-From the repository root, with the virtual environment active, run 20 games with the
-current agent as `.` and Benjamin as the opponent:
+After the root agent diverges from this checkpoint again, run 20 games from the
+repository root with the current agent as `.` and Benjamin as the fixed opponent:
 
 ```bash
 python -m harness.arena \
@@ -117,6 +135,6 @@ python -m harness.play \
     --pgn game.pgn
 ```
 
-Do not update Benjamin when improving the main agent. Its purpose is to remain a fixed
-historical opponent. The normal submission zip contains the root `agent.py`, not this
-folder.
+Keep Benjamin fixed while developing the next improvement so comparisons remain
+meaningful. Update it again only when deliberately choosing a new Benjamin checkpoint.
+The normal submission zip contains the root `agent.py`, not this folder.
