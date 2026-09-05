@@ -86,10 +86,8 @@ MAX_QUIESCENCE_DEPTH = 4
 MAX_THINK_MS = 3_000
 CLOCK_MARGIN_MS = 100
 EXPECTED_MOVES_LEFT = 40
-REPETITION_RISK_PENALTY = 25
 
-PositionKey = tuple[int, int, int, int, int, int, int, int, bool, int, int | None]
-PositionCounts = dict[PositionKey, int]
+PositionKey = tuple[str, bool, int, int | None]
 _POSITION_COUNTS: dict[PositionKey, int] = {}
 
 
@@ -127,14 +125,7 @@ def position_key(board: chess.Board) -> PositionKey:
     """Return the parts of a position that determine repetition identity."""
     legal_ep_square = board.ep_square if board.has_legal_en_passant() else None
     return (
-        board.pawns,
-        board.knights,
-        board.bishops,
-        board.rooks,
-        board.queens,
-        board.kings,
-        board.occupied_co[chess.WHITE],
-        board.occupied_co[chess.BLACK],
+        board.board_fen(),
         board.turn,
         board.castling_rights,
         legal_ep_square,
@@ -147,36 +138,9 @@ def record_position(board: chess.Board) -> None:
     _POSITION_COUNTS[key] = _POSITION_COUNTS.get(key, 0) + 1
 
 
-def record_search_position(
-    board: chess.Board,
-    position_counts: PositionCounts,
-) -> tuple[PositionKey, int]:
-    """Add a hypothetical position and return its key and new occurrence count."""
-    key = position_key(board)
-    occurrences = position_counts.get(key, 0) + 1
-    position_counts[key] = occurrences
-    return key, occurrences
-
-
-def forget_search_position(key: PositionKey, position_counts: PositionCounts) -> None:
-    """Undo one hypothetical occurrence after popping its move."""
-    occurrences = position_counts[key]
-    if occurrences == 1:
-        del position_counts[key]
-    else:
-        position_counts[key] = occurrences - 1
-
-
-def is_search_draw(board: chess.Board, current_repetitions: int) -> bool:
-    """Return whether a hypothetical node has reached a claimable draw."""
-    return current_repetitions >= 3 or board.is_fifty_moves()
-
-
-def repetition_adjusted_score(score: int, current_repetitions: int) -> int:
-    """Discourage a second occurrence while preserving draws for a losing side."""
-    if current_repetitions == 2 and score > 0:
-        return max(0, score - REPETITION_RISK_PENALTY)
-    return score
+def is_immediate_history_draw(board: chess.Board) -> bool:
+    """Return whether the current root candidate immediately allows a claimed draw."""
+    return _POSITION_COUNTS.get(position_key(board), 0) >= 2 or board.is_fifty_moves()
 
 
 # Create function to calculate material score of a board
@@ -367,15 +331,10 @@ def quiescence(
     mover: chess.Color,
     deadline: float,
     remaining_depth: int,
-    position_counts: PositionCounts,
-    current_repetitions: int,
 ) -> int:
     """Continue forcing moves until the position is tactically quiet."""
     if time.monotonic() >= deadline:
         raise SearchTimeoutError
-
-    if is_search_draw(board, current_repetitions):
-        return 0
 
     if remaining_depth == 0 or board.is_insufficient_material():
         return position_score(board, mover)
@@ -410,7 +369,6 @@ def quiescence(
     if maximizing:
         for move in moves:
             board.push(move)
-            key, repetitions = record_search_position(board, position_counts)
 
             try:
                 score = quiescence(
@@ -421,14 +379,10 @@ def quiescence(
                     mover,
                     deadline,
                     remaining_depth - 1,
-                    position_counts,
-                    repetitions,
                 )
             finally:
-                forget_search_position(key, position_counts)
                 board.pop()
 
-            score = repetition_adjusted_score(score, repetitions)
             value = max(value, score)
             alpha = max(alpha, value)
 
@@ -439,7 +393,6 @@ def quiescence(
 
     for move in moves:
         board.push(move)
-        key, repetitions = record_search_position(board, position_counts)
 
         try:
             score = quiescence(
@@ -450,14 +403,10 @@ def quiescence(
                 mover,
                 deadline,
                 remaining_depth - 1,
-                position_counts,
-                repetitions,
             )
         finally:
-            forget_search_position(key, position_counts)
             board.pop()
 
-        score = repetition_adjusted_score(score, repetitions)
         value = min(value, score)
         beta = min(beta, value)
 
@@ -476,15 +425,10 @@ def alpha_beta(
     mover: chess.Color,
     deadline: float,
     check_extensions_remaining: int,
-    position_counts: PositionCounts,
-    current_repetitions: int,
 ) -> int:
     """Search a position using minimax with alpha-beta pruning."""
     if time.monotonic() >= deadline:
         raise SearchTimeoutError
-
-    if is_search_draw(board, current_repetitions):
-        return 0
 
     if depth == 0:
         return quiescence(
@@ -495,8 +439,6 @@ def alpha_beta(
             mover,
             deadline,
             MAX_QUIESCENCE_DEPTH,
-            position_counts,
-            current_repetitions,
         )
 
     if board.is_insufficient_material():
@@ -512,7 +454,6 @@ def alpha_beta(
 
         for move in moves:
             board.push(move)
-            key, repetitions = record_search_position(board, position_counts)
 
             try:
                 extends_check = board.is_check() and check_extensions_remaining > 0
@@ -525,14 +466,10 @@ def alpha_beta(
                     mover,
                     deadline,
                     check_extensions_remaining - int(extends_check),
-                    position_counts,
-                    repetitions,
                 )
             finally:
-                forget_search_position(key, position_counts)
                 board.pop()
 
-            score = repetition_adjusted_score(score, repetitions)
             value = max(value, score)
             alpha = max(alpha, value)
 
@@ -545,7 +482,6 @@ def alpha_beta(
 
     for move in moves:
         board.push(move)
-        key, repetitions = record_search_position(board, position_counts)
 
         try:
             extends_check = board.is_check() and check_extensions_remaining > 0
@@ -558,14 +494,10 @@ def alpha_beta(
                 mover,
                 deadline,
                 check_extensions_remaining - int(extends_check),
-                position_counts,
-                repetitions,
             )
         finally:
-            forget_search_position(key, position_counts)
             board.pop()
 
-        score = repetition_adjusted_score(score, repetitions)
         value = min(value, score)
         beta = min(beta, value)
 
@@ -580,7 +512,6 @@ def search_at_depth(
     mover: chess.Color,
     depth: int,
     deadline: float,
-    position_counts: PositionCounts,
 ) -> chess.Move:
     """Find the best move at one complete search depth."""
     moves = ordered_moves(board)
@@ -597,10 +528,11 @@ def search_at_depth(
             raise SearchTimeoutError
 
         board.push(move)
-        key, repetitions = record_search_position(board, position_counts)
 
         try:
-            if is_search_draw(board, repetitions):
+            move_is_draw = is_immediate_history_draw(board)
+
+            if move_is_draw:
                 score = 0
             else:
                 extends_check = board.is_check() and MAX_CHECK_EXTENSIONS > 0
@@ -613,14 +545,10 @@ def search_at_depth(
                     mover,
                     deadline,
                     MAX_CHECK_EXTENSIONS - int(extends_check),
-                    position_counts,
-                    repetitions,
                 )
         finally:
-            forget_search_position(key, position_counts)
             board.pop()
 
-        score = repetition_adjusted_score(score, repetitions)
         if best_move is None or score > best_score:
             best_score = score
             best_move = move
@@ -658,7 +586,6 @@ def get_move(fen: str, time_left_ms: int) -> str:
 
     mover = board.turn
     record_position(board)
-    search_position_counts = _POSITION_COUNTS.copy()
 
     # Always have a legal move available, even if the search times out immediately.
     best_move = random.choice(moves)
@@ -672,13 +599,7 @@ def get_move(fen: str, time_left_ms: int) -> str:
 
     for depth in range(1, MAX_SEARCH_DEPTH + 1):
         try:
-            completed_move = search_at_depth(
-                board,
-                mover,
-                depth,
-                deadline,
-                search_position_counts,
-            )
+            completed_move = search_at_depth(board, mover, depth, deadline)
         except SearchTimeoutError:
             break
 

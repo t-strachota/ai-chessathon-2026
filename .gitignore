@@ -3,6 +3,8 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 submission.zip
+agent.zip
 *.pgn
 dataset_parts/
 full_dataset.jsonl
+.DS_Store
