@@ -738,3 +738,64 @@ unzip -p agent.zip agent.py | cmp - agent.py
 
 Do not edit `harness/`, do not commit `.DS_Store`, and do not benchmark deadline-based
 agents concurrently on the same CPU.
+
+## Gabriel checkpoint: endgame conversion and passed-pawn search
+
+This later update supersedes the earlier Ethan-era limitation list and proposed
+next experiment above. Friedrich already added repetition tracking throughout
+normal and quiescence search. The next candidate adds claim-aware fifty-move
+detection, clock urgency, bare-king conversion evaluation, and promotion awareness.
+
+### Endgame-only experiment
+
+The endgame layer recognizes claimable fifty-move draws, rewards progress against
+a bare king, and prioritizes checks in major-piece-versus-bare-king endings.
+It scored 20 wins, 10 draws, and 20 losses in the first 50-game series, followed by
+31 wins, 15 draws, and 29 losses in 75 more games. Combined: 51 wins, 25 draws,
+49 losses, or 50.8%. This alone did not demonstrate a strength gain.
+
+The first 50-game PGN showed substantial duplication and promotion-driven outcomes.
+All 20 losses involved an opponent promotion; all ten draws were reached while
+the candidate was materially behind. Games 30 and 31 were defensive saves against
+Friedrich's two queens and queen-plus-rook respectively, not failed conversions by
+the candidate.
+
+### Passed-pawn additions
+
+Gabriel increases sixth- and seventh-rank passed-pawn bonuses to 180 and 500
+centipawns. Quiet advanced-passer pushes enter quiescence and can receive one
+bounded normal-search extension. Promotions and captures of advanced passers are
+prioritized; ordinary positions use a fast ordering path. Adaptive timing and
+transposition tables were not added.
+
+### Final tests against Friedrich
+
+| Series | Wins | Draws | Losses | Score |
+| --- | ---: | ---: | ---: | ---: |
+| Test 1, user-reported arena | 13 | 3 | 4 | 72.5% |
+| Test 2, analyzed match-series.pgn | 16 | 1 | 8 | 66.0% |
+| Combined final candidate | 29 | 4 | 12 | 68.9% |
+
+The reported test control was 120,000 ms plus 500 ms per move; Test 2's headers
+confirm 120+0.5. Test 2 had 24 checkmates and one fifty-move draw, no adjudications,
+and no technical failures. Its only draw occurred six material points behind.
+Gabriel promoted in 14 of 16 wins. Four of eight losses involved an opponent
+promotion, compared with all 20 losses in the earlier sample; the samples differ,
+so this supports but does not isolate the effect of promotion awareness.
+
+Test 2 won all 12 games as Black but scored four wins, one draw, and eight losses
+as White (34.6%). Its 25 games contained only 15 unique complete move sequences.
+The combined improvement warrants a checkpoint, with varied starting positions
+and reversed colors the next validation step.
+
+### Checkpoint and next development
+
+The current root agent is saved byte-for-byte in past_models/Gabriel/agent.py,
+with features, benchmarks, and caveats in its README. Friedrich is preserved.
+The user requested merging the development work into main and pushing to GitHub.
+
+The next investigation is whether the larger passed-pawn bonus encourages
+unsound sacrifices. In Test 2 games 17 and 19, 29.R7xe6 fxe6 30.dxe6 traded a rook
+for a bishop and an advanced passer; the pawn eventually fell and the agent lost.
+This is a concrete regression case, not a proven causal diagnosis. Account for
+blockades, protection, and safe promotion before further increasing pawn values.
