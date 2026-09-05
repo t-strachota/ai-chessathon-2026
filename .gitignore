@@ -4,3 +4,5 @@ __pycache__/
 .ruff_cache/
 submission.zip
 *.pgn
+dataset_parts/
+full_dataset.jsonl
