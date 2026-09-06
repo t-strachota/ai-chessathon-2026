@@ -799,3 +799,97 @@ unsound sacrifices. In Test 2 games 17 and 19, 29.R7xe6 fxe6 30.dxe6 traded a ro
 for a bishop and an advanced passer; the pawn eventually fell and the agent lost.
 This is a concrete regression case, not a proven causal diagnosis. Account for
 blockades, protection, and safe promotion before further increasing pawn values.
+
+## Horst checkpoint: compiled search and Chess Lab (6 September 2026)
+
+The current development branch adds a substantially faster, source-readable
+search implementation. The root agent now uses a Numba-compiled 0x88 board,
+legal move generation, make/unmake, evaluation, and recursive iterative-deepening
+alpha-beta search. Gabriel's evaluation was retained so this experiment measures
+search quality and speed rather than silently changing all evaluation weights.
+
+Search additions include capture/promotion, killer and history ordering; a
+context-safe transposition table; mate-distance handling; six-ply quiescence;
+bounded check and advanced-passed-pawn extensions; and prospective threefold and
+fifty-move draw detection. Table scores are reused only when repetition history,
+halfmove clock, extension budget, and relevant position match. The position-only
+table is used only for move ordering. No prohibited engine, network, or shipped
+native binary is used.
+
+### Verification and speed
+
+`match_maker/lab/verify.py` passed 2,955 positions and 92,581 make/undo
+transitions, including randomized legal play, castling, promotion, en passant
+and pins, reference perft, evaluation equality with Gabriel, draw claims,
+transposition-table bounds/history/clock/extension isolation, mate-distance
+normalization, and interrupted searches. Perft results were 197,281 from the
+start at depth 4, 97,862 from the castling position at depth 3, 2,812 from the
+en-passant position at depth 3, and 9,467 from the promotion position at depth 3.
+Ruff, strict mypy, two random-agent smoke games, and the accessory tests passed.
+
+In one-second local benchmarks, the compiled engine completed depth 6 versus
+Gabriel's depth 4 from the start, depth 4 versus 3 in the castling position,
+depth 7 versus 4 in the en-passant position, depth 5 versus 3 in the promotion
+position, and depth 5 versus 3 in the middlegame knight position. It processed
+approximately 150,000--330,000 nodes per second locally. Gabriel's instrumented
+search processed approximately 10,000--22,000 function entries per second; that
+counter adds overhead and counts quiescence differently, so these are directional
+measurements rather than a claimed fixed speed multiplier.
+
+### Match evidence
+
+The four-opening full-clock suite against Gabriel, with each color played once,
+scored **8 wins, 0 draws, 0 losses**, all by checkmate. The user's later
+75-game PGN (`/Users/tobiasstrachota/Desktop/match-series.pgn`) contained:
+
+| Result | Count |
+| --- | ---: |
+| Current-agent wins | 33 |
+| Draws | 42 |
+| Current-agent losses | 0 |
+
+All 42 draws ended at exactly 100 plies because that run used a 100-ply cap.
+They were artificial test stops, not natural FIDE draws or proof of endgame
+conversion. The series used four repeated opening families, not 75 independent
+curated competition openings. Candidate search depth averaged 5.66 and reached
+9; measured response time averaged about 2.03 seconds per move. No PGN
+discrepancies or technical failures were found.
+
+### Chess Lab accessory
+
+The former match maker and engine lab are now one local program:
+
+```bash
+v-env/bin/python -m match_maker
+```
+
+The redesigned dark Chess Lab has Match room and Engine tools workspaces. It
+discovers the working agent, baselines, and past models; supports standard,
+custom-FEN, and four-opening color-paired matches; displays a responsive board,
+clocks, move list, and replay; and runs verification/benchmark jobs without
+blocking the UI. It records per-move elapsed time, remaining clock, completed
+search depth, nodes, NPS, transposition-table hits, material balance, legal-move
+count, halfmove clock, captures, checks, and promotions when an agent reports
+them. It also shows response-time/depth charts, color/opening breakdowns,
+initialization times, timing percentiles, total nodes, and technical failures.
+
+Finished series autosave timestamped PGN and JSON files; JSON includes aggregate
+statistics and full move telemetry, while CSV and PGN can be exported manually.
+Missing telemetry is shown as `--` and excluded from averages. Older agents that
+do not expose `LAST_SEARCH` remain fully playable. `engine_lab` commands remain
+compatibility wrappers around `match_maker/lab`.
+
+### Horst checkpoint and limitations
+
+The current root is saved byte-for-byte as **Horst** in `past_models/Horst`, with
+the feature summary and evidence in its README. `agent.zip` was rebuilt and
+verified to contain only the root `agent.py` (27,275 bytes unzipped). Chess Lab
+and its reports are development tooling and are not included in the submission.
+
+The 75-game evidence supports freezing Horst as the new comparison checkpoint,
+but not assuming a leaderboard gain yet. Future testing should use the full
+600-ply cap from the live contract, retain the 120+0.5 time control, and include
+other opponents and varied positions. The live rules specify a 90-second init
+budget, one AMD EPYC core, and a 600-ply draw; the repository harness remains an
+older local approximation with a stricter init limit. Platform upload validation
+is authoritative.
