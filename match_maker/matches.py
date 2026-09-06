@@ -1,4 +1,4 @@
-"""Run observable local matches without changing the competition harness."""
+"""Observable local matches; the competition harness and agents stay untouched."""
 
 from __future__ import annotations
 
@@ -13,16 +13,16 @@ import chess
 import chess.pgn
 
 from harness.referee import FAILED_TERMINATIONS, PIECE_VALUES, RESULT_HEADERS
-from harness.rules import INIT_BUDGET_S, PLY_CAP
-from harness.sandbox import Agent, AgentFailure, local
+from harness.rules import INIT_BUDGET_S
+from harness.sandbox import AgentFailure
+from match_maker.diagnostics import DiagnosticAgent
+from match_maker.lab.series import OPENINGS, opening_fen
 
 Result = Literal["white", "black", "draw", "void"]
 
 
 @dataclass(frozen=True)
 class SeriesConfig:
-    """All user-selected settings for one series."""
-
     competitor_a_name: str
     competitor_a_path: Path
     competitor_b_name: str
@@ -30,13 +30,13 @@ class SeriesConfig:
     games: int
     base_ms: int
     increment_ms: int
-    ply_cap: int = PLY_CAP
+    ply_cap: int = 600
+    opening_mode: str = "Paired opening suite"
+    custom_fen: str = chess.STARTING_FEN
 
 
 @dataclass(frozen=True)
 class GameStarted:
-    """Describe the colors at the beginning of a game."""
-
     game_number: int
     total_games: int
     white_name: str
@@ -44,19 +44,16 @@ class GameStarted:
     competitor_a_is_white: bool
     initial_fen: str
     base_ms: int
+    opening: str
 
 
 @dataclass(frozen=True)
 class AgentStatus:
-    """Describe initialization or other non-move work."""
-
     message: str
 
 
 @dataclass(frozen=True)
 class MoveStarted:
-    """Tell the GUI that an agent has started thinking."""
-
     color: chess.Color
     player_name: str
     remaining_ms: int
@@ -64,21 +61,40 @@ class MoveStarted:
 
 
 @dataclass(frozen=True)
-class PositionChanged:
-    """Provide a new board position after a legal move."""
+class MoveRecord:
+    ply: int
+    color: str
+    san: str
+    uci: str
+    fen: str
+    elapsed_ms: float
+    clock_ms: int
+    depth: float | None
+    nodes: float | None
+    nps: float | None
+    tt_hits: float | None
+    search_seconds: float | None
+    material_white: int
+    legal_moves: int
+    halfmove_clock: int
+    capture: bool
+    check: bool
+    promotion: bool
 
+
+@dataclass(frozen=True)
+class PositionChanged:
     fen: str
     last_move_uci: str
     last_move_san: str
     ply: int
     white_ms: int
     black_ms: int
+    record: MoveRecord
 
 
 @dataclass(frozen=True)
 class GameSummary:
-    """Store the final result and PGN for one game."""
-
     game_number: int
     white_name: str
     black_name: str
@@ -90,25 +106,27 @@ class GameSummary:
     final_fen: str
     white_ms: int
     black_ms: int
+    opening: str
+    initial_fen: str
+    elapsed_seconds: float
+    white_init_seconds: float
+    black_init_seconds: float
+    moves: tuple[MoveRecord, ...]
+    error_detail: str = ""
 
     @property
     def technical_failure(self) -> bool:
-        """Return whether the game ended through an agent or protocol failure."""
         return self.termination in FAILED_TERMINATIONS
 
 
 @dataclass(frozen=True)
 class SeriesFinished:
-    """Tell the GUI whether the requested series completed."""
-
     completed_games: int
     cancelled: bool
 
 
 @dataclass(frozen=True)
 class MatchError:
-    """Report an unexpected helper error to the GUI."""
-
     message: str
 
 
@@ -125,334 +143,224 @@ type EventCallback = Callable[[MatchEvent], None]
 
 
 class MatchCancelled(Exception):
-    """Signal a user-requested cancellation between agent operations."""
+    """User requested cancellation between agent operations."""
 
 
 def discover_models(repository: Path) -> dict[str, Path]:
-    """Find the working agent, baselines, and saved models in display order."""
     models: dict[str, Path] = {}
-
     if (repository / "agent.py").is_file():
         models["Current agent (working tree)"] = repository
-
-    groups = (
+    for group, parent in (
         ("Baseline", repository / "baselines"),
         ("Past model", repository / "past_models"),
-    )
-    for group_name, parent in groups:
-        if not parent.is_dir():
-            continue
-        for directory in sorted(parent.iterdir(), key=lambda path: path.name.casefold()):
-            if directory.is_dir() and (directory / "agent.py").is_file():
-                models[f"{group_name} / {directory.name}"] = directory
-
+    ):
+        if parent.is_dir():
+            for directory in sorted(parent.iterdir(), key=lambda p: p.name.casefold()):
+                if directory.is_dir() and (directory / "agent.py").is_file():
+                    models[f"{group} / {directory.name}"] = directory
     return models
 
 
-def run_series(
-    config: SeriesConfig,
-    callback: EventCallback,
-    cancel_event: threading.Event,
-) -> None:
-    """Run games serially, alternating which competitor receives White."""
-    completed_games = 0
+def starting_position(config: SeriesConfig, index: int) -> tuple[str, str]:
+    if config.opening_mode == "Paired opening suite":
+        name, line = list(OPENINGS.items())[(index // 2) % len(OPENINGS)]
+        return name, opening_fen(line)
+    if config.opening_mode == "Custom FEN":
+        return "custom", config.custom_fen
+    return "standard", chess.STARTING_FEN
 
+
+def run_series(
+    config: SeriesConfig, callback: EventCallback, cancel_event: threading.Event
+) -> None:
+    completed = 0
     try:
-        for game_index in range(config.games):
+        for index in range(config.games):
             if cancel_event.is_set():
                 raise MatchCancelled
-
-            game_number = game_index + 1
-            competitor_a_is_white = game_index % 2 == 0
-            if competitor_a_is_white:
-                white_name = config.competitor_a_name
-                white_path = config.competitor_a_path
-                black_name = config.competitor_b_name
-                black_path = config.competitor_b_path
-            else:
-                white_name = config.competitor_b_name
-                white_path = config.competitor_b_path
-                black_name = config.competitor_a_name
-                black_path = config.competitor_a_path
-
+            opening, fen = starting_position(config, index)
+            a_white = index % 2 == 0
+            white_name = config.competitor_a_name if a_white else config.competitor_b_name
+            black_name = config.competitor_b_name if a_white else config.competitor_a_name
             callback(
                 GameStarted(
-                    game_number=game_number,
-                    total_games=config.games,
-                    white_name=white_name,
-                    black_name=black_name,
-                    competitor_a_is_white=competitor_a_is_white,
-                    initial_fen=chess.STARTING_FEN,
-                    base_ms=config.base_ms,
+                    index + 1,
+                    config.games,
+                    white_name,
+                    black_name,
+                    a_white,
+                    fen,
+                    config.base_ms,
+                    opening,
                 )
             )
-            summary = _play_observable_game(
-                game_number=game_number,
-                white_name=white_name,
-                white_path=white_path,
-                black_name=black_name,
-                black_path=black_path,
-                competitor_a_is_white=competitor_a_is_white,
-                base_ms=config.base_ms,
-                increment_ms=config.increment_ms,
-                ply_cap=config.ply_cap,
-                callback=callback,
-                cancel_event=cancel_event,
-            )
-            completed_games += 1
+            summary = _play_game(config, index + 1, a_white, opening, fen, callback, cancel_event)
             callback(summary)
+            completed += 1
     except MatchCancelled:
-        callback(SeriesFinished(completed_games=completed_games, cancelled=True))
-    except Exception as error:  # Keep an unexpected helper failure visible in the GUI.
-        callback(MatchError(message=f"{type(error).__name__}: {error}"))
-        callback(SeriesFinished(completed_games=completed_games, cancelled=True))
+        callback(SeriesFinished(completed, True))
+    except Exception as error:
+        callback(MatchError(f"{type(error).__name__}: {error}"))
+        callback(SeriesFinished(completed, True))
     else:
-        callback(SeriesFinished(completed_games=completed_games, cancelled=False))
+        callback(SeriesFinished(completed, False))
 
 
-def _play_observable_game(
-    *,
-    game_number: int,
-    white_name: str,
-    white_path: Path,
-    black_name: str,
-    black_path: Path,
-    competitor_a_is_white: bool,
-    base_ms: int,
-    increment_ms: int,
-    ply_cap: int,
+def _play_game(
+    config: SeriesConfig,
+    number: int,
+    a_white: bool,
+    opening: str,
+    fen: str,
     callback: EventCallback,
-    cancel_event: threading.Event,
+    cancel: threading.Event,
 ) -> GameSummary:
-    board = chess.Board()
-    white = local(white_path)
-    black = local(black_path)
+    board = chess.Board(fen)
+    paths = (config.competitor_a_path, config.competitor_b_path)
+    names = (config.competitor_a_name, config.competitor_b_name)
+    white = DiagnosticAgent(paths[0 if a_white else 1])
+    black = DiagnosticAgent(paths[1 if a_white else 0])
     agents = {chess.WHITE: white, chess.BLACK: black}
-    names = {chess.WHITE: white_name, chess.BLACK: black_name}
-    clock = {chess.WHITE: float(base_ms), chess.BLACK: float(base_ms)}
+    player_names = {
+        chess.WHITE: names[0 if a_white else 1],
+        chess.BLACK: names[1 if a_white else 0],
+    }
+    clock = {chess.WHITE: float(config.base_ms), chess.BLACK: float(config.base_ms)}
+    init = {chess.WHITE: 0.0, chess.BLACK: 0.0}
+    records: list[MoveRecord] = []
+    started = time.monotonic()
+
+    def finish(result: Result, termination: str, detail: str = "") -> GameSummary:
+        if termination in FAILED_TERMINATIONS:
+            white.stop()
+            black.stop()
+            detail = "\n".join(
+                part
+                for part in (detail, white.stderr_tail[-4096:], black.stderr_tail[-4096:])
+                if part
+            )
+        game = chess.pgn.Game.from_board(board)
+        game.headers.update(
+            Event="Chess Lab",
+            White=player_names[chess.WHITE],
+            Black=player_names[chess.BLACK],
+            Result=RESULT_HEADERS[result],
+            Termination=termination,
+            Opening=opening,
+            TimeControl=f"{config.base_ms / 1000:g}+{config.increment_ms / 1000:g}",
+        )
+        for node, record in zip(game.mainline(), records, strict=True):
+            node.set_clock(record.clock_ms / 1000)
+            node.set_emt(record.elapsed_ms / 1000)
+            if record.depth is not None:
+                node.comment += f" depth={record.depth:g}"
+        return GameSummary(
+            number,
+            player_names[chess.WHITE],
+            player_names[chess.BLACK],
+            a_white,
+            result,
+            termination,
+            len(records),
+            str(game),
+            board.fen(),
+            max(0, round(clock[chess.WHITE])),
+            max(0, round(clock[chess.BLACK])),
+            opening,
+            fen,
+            time.monotonic() - started,
+            init[chess.WHITE],
+            init[chess.BLACK],
+            tuple(records),
+            detail,
+        )
 
     try:
-        callback(AgentStatus(message=f"Game {game_number}: starting {white_name}"))
-        white_failure = _start_agent(white)
-        callback(AgentStatus(message=f"Game {game_number}: starting {black_name}"))
-        black_failure = _start_agent(black)
-
-        if cancel_event.is_set():
-            raise MatchCancelled
-        if white_failure is not None and black_failure is not None:
-            return _summary(
-                board,
-                game_number,
-                white_name,
-                black_name,
-                competitor_a_is_white,
-                "void",
-                "both_failed",
-                clock,
-                base_ms,
-                increment_ms,
-            )
-        if white_failure is not None:
-            return _summary(
-                board,
-                game_number,
-                white_name,
-                black_name,
-                competitor_a_is_white,
-                "black",
-                white_failure,
-                clock,
-                base_ms,
-                increment_ms,
-            )
-        if black_failure is not None:
-            return _summary(
-                board,
-                game_number,
-                white_name,
-                black_name,
-                competitor_a_is_white,
-                "white",
-                black_failure,
-                clock,
-                base_ms,
-                increment_ms,
-            )
-
-        while True:
-            if cancel_event.is_set():
+        failures = {}
+        for color, process in agents.items():
+            if cancel.is_set():
                 raise MatchCancelled
-
-            finish = board.outcome(claim_draw=True)
-            if finish is not None:
-                result: Result
-                if finish.winner is None:
-                    result = "draw"
-                else:
-                    result = "white" if finish.winner == chess.WHITE else "black"
-                return _summary(
-                    board,
-                    game_number,
-                    white_name,
-                    black_name,
-                    competitor_a_is_white,
-                    result,
-                    finish.termination.name.lower(),
-                    clock,
-                    base_ms,
-                    increment_ms,
-                )
-
-            if len(board.move_stack) >= ply_cap:
-                return _summary(
-                    board,
-                    game_number,
-                    white_name,
-                    black_name,
-                    competitor_a_is_white,
-                    _adjudicate(board),
-                    "adjudication",
-                    clock,
-                    base_ms,
-                    increment_ms,
-                )
-
-            mover = board.turn
-            started_at = time.monotonic()
-            callback(
-                MoveStarted(
-                    color=mover,
-                    player_name=names[mover],
-                    remaining_ms=max(0, round(clock[mover])),
-                    started_at=started_at,
-                )
-            )
+            callback(AgentStatus(f"Game {number}: initializing {player_names[color]}…"))
+            stamp = time.monotonic()
             try:
-                uci = agents[mover].move(board.fen(), int(clock[mover]))
-            except AgentFailure as failure:
-                return _summary(
-                    board,
-                    game_number,
-                    white_name,
-                    black_name,
-                    competitor_a_is_white,
-                    _opponent_wins(mover),
-                    failure.reason,
-                    clock,
-                    base_ms,
-                    increment_ms,
+                process.start(INIT_BUDGET_S)
+            except AgentFailure as error:
+                failures[color] = error.reason
+            init[color] = time.monotonic() - stamp
+        if len(failures) == 2:
+            return finish("void", "both_failed")
+        if failures:
+            loser, reason = next(iter(failures.items()))
+            return finish("black" if loser else "white", reason)
+        while True:
+            if cancel.is_set():
+                raise MatchCancelled
+            outcome = board.outcome(claim_draw=True)
+            if outcome:
+                result: Result = (
+                    "draw" if outcome.winner is None else "white" if outcome.winner else "black"
                 )
-
-            clock[mover] -= (time.monotonic() - started_at) * 1_000.0
-            if clock[mover] < 0:
-                return _summary(
-                    board,
-                    game_number,
-                    white_name,
-                    black_name,
-                    competitor_a_is_white,
-                    _opponent_wins(mover),
-                    "flag",
-                    clock,
-                    base_ms,
-                    increment_ms,
-                )
-
-            move = _legal_move(board, uci)
-            if move is None:
-                return _summary(
-                    board,
-                    game_number,
-                    white_name,
-                    black_name,
-                    competitor_a_is_white,
-                    _opponent_wins(mover),
-                    "illegal",
-                    clock,
-                    base_ms,
-                    increment_ms,
-                )
-
-            san = board.san(move)
+                return finish(result, outcome.termination.name.lower())
+            if board.ply() >= config.ply_cap:
+                return finish("draw", "ply_limit")
+            mover = board.turn
+            callback(MoveStarted(mover, player_names[mover], round(clock[mover]), time.monotonic()))
+            stamp = time.monotonic()
+            failure = ""
+            try:
+                reply = agents[mover].move(board.fen(), int(clock[mover]))
+            except AgentFailure as error:
+                failure, reply = error.reason, ""
+            elapsed = (time.monotonic() - stamp) * 1000
+            clock[mover] -= elapsed
+            if failure or clock[mover] < 0:
+                return finish("black" if mover else "white", failure or "flag")
+            try:
+                move = chess.Move.from_uci(reply)
+            except chess.InvalidMoveError:
+                return finish("black" if mover else "white", "illegal", repr(reply))
+            if move not in board.legal_moves:
+                return finish("black" if mover else "white", "illegal", repr(reply))
+            san, capture = board.san(move), board.is_capture(move)
             board.push(move)
-            clock[mover] += increment_ms
+            clock[mover] += config.increment_ms
+            stats = agents[mover].stats
+            material = sum(
+                v * (len(board.pieces(p, chess.WHITE)) - len(board.pieces(p, chess.BLACK)))
+                for p, v in PIECE_VALUES.items()
+            )
+            record = MoveRecord(
+                board.ply(),
+                "white" if mover else "black",
+                san,
+                reply,
+                board.fen(),
+                elapsed,
+                max(0, round(clock[mover])),
+                stats.get("depth"),
+                stats.get("nodes"),
+                stats.get("nps"),
+                stats.get("tt_hits"),
+                stats.get("seconds"),
+                material,
+                board.legal_moves.count(),
+                board.halfmove_clock,
+                capture,
+                board.is_check(),
+                move.promotion is not None,
+            )
+            records.append(record)
             callback(
                 PositionChanged(
-                    fen=board.fen(),
-                    last_move_uci=move.uci(),
-                    last_move_san=san,
-                    ply=len(board.move_stack),
-                    white_ms=max(0, round(clock[chess.WHITE])),
-                    black_ms=max(0, round(clock[chess.BLACK])),
+                    board.fen(),
+                    reply,
+                    san,
+                    board.ply(),
+                    round(clock[chess.WHITE]),
+                    round(clock[chess.BLACK]),
+                    record,
                 )
             )
     finally:
         white.stop()
         black.stop()
-
-
-def _start_agent(agent: Agent) -> str | None:
-    try:
-        agent.start(INIT_BUDGET_S)
-    except AgentFailure as failure:
-        return failure.reason
-    return None
-
-
-def _legal_move(board: chess.Board, uci: str) -> chess.Move | None:
-    try:
-        move = chess.Move.from_uci(uci)
-    except chess.InvalidMoveError:
-        return None
-    return move if move in board.legal_moves else None
-
-
-def _opponent_wins(mover: chess.Color) -> Result:
-    return "black" if mover == chess.WHITE else "white"
-
-
-def _adjudicate(board: chess.Board) -> Result:
-    balance = sum(
-        value * (len(board.pieces(piece, chess.WHITE)) - len(board.pieces(piece, chess.BLACK)))
-        for piece, value in PIECE_VALUES.items()
-    )
-    if balance > 0:
-        return "white"
-    if balance < 0:
-        return "black"
-    return "draw"
-
-
-def _summary(
-    board: chess.Board,
-    game_number: int,
-    white_name: str,
-    black_name: str,
-    competitor_a_is_white: bool,
-    result: Result,
-    termination: str,
-    clock: dict[chess.Color, float],
-    base_ms: int,
-    increment_ms: int,
-) -> GameSummary:
-    game = chess.pgn.Game.from_board(board)
-    game.headers["Event"] = "Local Match Maker"
-    game.headers["White"] = white_name
-    game.headers["Black"] = black_name
-    game.headers["Result"] = RESULT_HEADERS[result]
-    game.headers["Termination"] = termination
-    game.headers["TimeControl"] = f"{base_ms / 1_000:g}+{increment_ms / 1_000:g}"
-
-    return GameSummary(
-        game_number=game_number,
-        white_name=white_name,
-        black_name=black_name,
-        competitor_a_is_white=competitor_a_is_white,
-        result=result,
-        termination=termination,
-        plies=len(board.move_stack),
-        pgn=str(game),
-        final_fen=board.fen(),
-        white_ms=max(0, round(clock[chess.WHITE])),
-        black_ms=max(0, round(clock[chess.BLACK])),
-    )

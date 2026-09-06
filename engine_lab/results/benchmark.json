@@ -1,0 +1,350 @@
+{
+  "seconds_per_search": 1.0,
+  "init_seconds": 1.9608899590093642,
+  "note": "Gabriel nodes count alpha-beta and quiescence entries; instrumentation adds overhead.",
+  "positions": [
+    {
+      "name": "start",
+      "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "gabriel": {
+        "move": "b1c3",
+        "nodes": 20502,
+        "depth": 4,
+        "seconds": 1.0002045420114882,
+        "nps": 20497
+      },
+      "compiled": {
+        "unordered": {
+          "move": "b1c3",
+          "score": 101,
+          "depth": 4,
+          "nodes": 218112,
+          "tt_hits": 0,
+          "seconds": 1.000979083997663,
+          "nps": 217898
+        },
+        "ordered": {
+          "move": "e2e3",
+          "score": 122,
+          "depth": 6,
+          "nodes": 227840,
+          "tt_hits": 0,
+          "seconds": 1.0007794580014888,
+          "nps": 227662
+        },
+        "move_table": {
+          "move": "e2e3",
+          "score": 122,
+          "depth": 6,
+          "nodes": 230144,
+          "tt_hits": 0,
+          "seconds": 1.0011801250220742,
+          "nps": 229872
+        },
+        "score_table": {
+          "move": "e2e3",
+          "score": 122,
+          "depth": 6,
+          "nodes": 228352,
+          "tt_hits": 6120,
+          "seconds": 1.0012157500023022,
+          "nps": 228074
+        }
+      }
+    },
+    {
+      "name": "castle",
+      "fen": "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+      "gabriel": {
+        "move": "d5d6",
+        "nodes": 11186,
+        "depth": 3,
+        "seconds": 1.0002905419969466,
+        "nps": 11182
+      },
+      "compiled": {
+        "unordered": {
+          "move": "d5d6",
+          "score": 31,
+          "depth": 3,
+          "nodes": 155392,
+          "tt_hits": 0,
+          "seconds": 1.0009472079982515,
+          "nps": 155244
+        },
+        "ordered": {
+          "move": "d5e6",
+          "score": 153,
+          "depth": 4,
+          "nodes": 153088,
+          "tt_hits": 0,
+          "seconds": 1.0006067500216886,
+          "nps": 152995
+        },
+        "move_table": {
+          "move": "d5e6",
+          "score": 153,
+          "depth": 4,
+          "nodes": 152576,
+          "tt_hits": 0,
+          "seconds": 1.0007587910222355,
+          "nps": 152460
+        },
+        "score_table": {
+          "move": "d5e6",
+          "score": 153,
+          "depth": 4,
+          "nodes": 152320,
+          "tt_hits": 635,
+          "seconds": 1.0000864999892656,
+          "nps": 152306
+        }
+      }
+    },
+    {
+      "name": "ep",
+      "fen": "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+      "gabriel": {
+        "move": "e2e3",
+        "nodes": 22055,
+        "depth": 4,
+        "seconds": 1.000183875003131,
+        "nps": 22050
+      },
+      "compiled": {
+        "unordered": {
+          "move": "b4f4",
+          "score": 178,
+          "depth": 5,
+          "nodes": 330752,
+          "tt_hits": 0,
+          "seconds": 1.0002594590187073,
+          "nps": 330666
+        },
+        "ordered": {
+          "move": "b4c4",
+          "score": 74,
+          "depth": 6,
+          "nodes": 346880,
+          "tt_hits": 0,
+          "seconds": 1.000802875001682,
+          "nps": 346601
+        },
+        "move_table": {
+          "move": "b4c4",
+          "score": 77,
+          "depth": 7,
+          "nodes": 334080,
+          "tt_hits": 0,
+          "seconds": 1.0006177499890327,
+          "nps": 333873
+        },
+        "score_table": {
+          "move": "b4c4",
+          "score": 77,
+          "depth": 7,
+          "nodes": 331520,
+          "tt_hits": 7020,
+          "seconds": 1.0000606249959674,
+          "nps": 331499
+        }
+      }
+    },
+    {
+      "name": "promotion",
+      "fen": "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+      "gabriel": {
+        "move": "c4c5",
+        "nodes": 10489,
+        "depth": 3,
+        "seconds": 1.000272083998425,
+        "nps": 10486
+      },
+      "compiled": {
+        "unordered": {
+          "move": "c4c5",
+          "score": -220,
+          "depth": 3,
+          "nodes": 189184,
+          "tt_hits": 0,
+          "seconds": 1.000372625014279,
+          "nps": 189113
+        },
+        "ordered": {
+          "move": "c4c5",
+          "score": -407,
+          "depth": 5,
+          "nodes": 206848,
+          "tt_hits": 0,
+          "seconds": 1.0004153329937253,
+          "nps": 206762
+        },
+        "move_table": {
+          "move": "c4c5",
+          "score": -407,
+          "depth": 5,
+          "nodes": 215296,
+          "tt_hits": 0,
+          "seconds": 1.0007380419992842,
+          "nps": 215137
+        },
+        "score_table": {
+          "move": "c4c5",
+          "score": -407,
+          "depth": 5,
+          "nodes": 214784,
+          "tt_hits": 650,
+          "seconds": 1.0002465410216246,
+          "nps": 214731
+        }
+      }
+    },
+    {
+      "name": "knight",
+      "fen": "r1b1k2r/1pq2ppp/p2p1n2/2p1p3/2N2Q2/P1PPP3/3P1PPP/R1B1K2R w KQkq - 0 13",
+      "gabriel": {
+        "move": "c4e5",
+        "nodes": 16105,
+        "depth": 3,
+        "seconds": 1.0002376659831498,
+        "nps": 16101
+      },
+      "compiled": {
+        "unordered": {
+          "move": "c4e5",
+          "score": -104,
+          "depth": 3,
+          "nodes": 201216,
+          "tt_hits": 0,
+          "seconds": 1.0011394589964766,
+          "nps": 200986
+        },
+        "ordered": {
+          "move": "f4g5",
+          "score": -146,
+          "depth": 5,
+          "nodes": 208384,
+          "tt_hits": 0,
+          "seconds": 1.0004553340259008,
+          "nps": 208289
+        },
+        "move_table": {
+          "move": "f4g5",
+          "score": -146,
+          "depth": 5,
+          "nodes": 177152,
+          "tt_hits": 0,
+          "seconds": 1.0010143750114366,
+          "nps": 176972
+        },
+        "score_table": {
+          "move": "f4g5",
+          "score": -146,
+          "depth": 5,
+          "nodes": 180480,
+          "tt_hits": 3048,
+          "seconds": 1.0011747910175472,
+          "nps": 180268
+        }
+      }
+    },
+    {
+      "name": "mopup",
+      "fen": "7R/8/5Q2/8/8/4P1k1/8/6K1 w - - 1 64",
+      "gabriel": {
+        "move": "h8g8",
+        "nodes": 29008,
+        "depth": 7,
+        "seconds": 1.0003020830044989,
+        "nps": 28999
+      },
+      "compiled": {
+        "unordered": {
+          "move": "f6f4",
+          "score": 99999,
+          "depth": 1,
+          "nodes": 53,
+          "tt_hits": 0,
+          "seconds": 0.00013679100084118545,
+          "nps": 387452
+        },
+        "ordered": {
+          "move": "f6f4",
+          "score": 99999,
+          "depth": 1,
+          "nodes": 53,
+          "tt_hits": 0,
+          "seconds": 0.00011020901729352772,
+          "nps": 480904
+        },
+        "move_table": {
+          "move": "f6f4",
+          "score": 99999,
+          "depth": 1,
+          "nodes": 53,
+          "tt_hits": 0,
+          "seconds": 0.0001102499954868108,
+          "nps": 480725
+        },
+        "score_table": {
+          "move": "f6f4",
+          "score": 99999,
+          "depth": 1,
+          "nodes": 53,
+          "tt_hits": 0,
+          "seconds": 0.00011362499208189547,
+          "nps": 466446
+        }
+      }
+    },
+    {
+      "name": "clock",
+      "fen": "8/5R2/8/3Q4/8/4P2k/8/6K1 w - - 93 110",
+      "gabriel": {
+        "move": "f7h7",
+        "nodes": 29947,
+        "depth": 8,
+        "seconds": 1.0003382919821888,
+        "nps": 29936
+      },
+      "compiled": {
+        "unordered": {
+          "move": "d5g2",
+          "score": 99997,
+          "depth": 2,
+          "nodes": 553,
+          "tt_hits": 0,
+          "seconds": 0.001174875011201948,
+          "nps": 470688
+        },
+        "ordered": {
+          "move": "d5g2",
+          "score": 99997,
+          "depth": 2,
+          "nodes": 558,
+          "tt_hits": 0,
+          "seconds": 0.00109816700569354,
+          "nps": 508119
+        },
+        "move_table": {
+          "move": "d5h5",
+          "score": 99997,
+          "depth": 2,
+          "nodes": 551,
+          "tt_hits": 0,
+          "seconds": 0.0011040419922210276,
+          "nps": 499075
+        },
+        "score_table": {
+          "move": "d5h5",
+          "score": 99997,
+          "depth": 2,
+          "nodes": 551,
+          "tt_hits": 0,
+          "seconds": 0.0010694170196074992,
+          "nps": 515233
+        }
+      }
+    }
+  ]
+}

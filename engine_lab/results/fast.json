@@ -1,0 +1,76 @@
+{
+  "agent": ".",
+  "opponent": "past_models/Gabriel",
+  "base_ms": 10000,
+  "increment_ms": 100,
+  "init_budget_note": "The older harness's 60-second init is stricter than the live 90 seconds.",
+  "games": [
+    {
+      "opening": "open_game",
+      "candidate_color": "white",
+      "record": "W",
+      "termination": "checkmate",
+      "fen": "r1bqk2r/ppp2ppp/2np1n2/2b1p3/2B1P3/2PP1N2/PP3PPP/RNBQK2R w KQkq - 0 6",
+      "plies": 61
+    },
+    {
+      "opening": "open_game",
+      "candidate_color": "black",
+      "record": "W",
+      "termination": "checkmate",
+      "fen": "r1bqk2r/ppp2ppp/2np1n2/2b1p3/2B1P3/2PP1N2/PP3PPP/RNBQK2R w KQkq - 0 6",
+      "plies": 40
+    },
+    {
+      "opening": "queens_gambit",
+      "candidate_color": "white",
+      "record": "W",
+      "termination": "checkmate",
+      "fen": "rnbq1rk1/ppp1bppp/4pn2/3p2B1/2PP4/2N1P3/PP3PPP/R2QKBNR w KQ - 1 6",
+      "plies": 37
+    },
+    {
+      "opening": "queens_gambit",
+      "candidate_color": "black",
+      "record": "W",
+      "termination": "checkmate",
+      "fen": "rnbq1rk1/ppp1bppp/4pn2/3p2B1/2PP4/2N1P3/PP3PPP/R2QKBNR w KQ - 1 6",
+      "plies": 60
+    },
+    {
+      "opening": "sicilian",
+      "candidate_color": "white",
+      "record": "W",
+      "termination": "checkmate",
+      "fen": "rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq - 0 6",
+      "plies": 113
+    },
+    {
+      "opening": "sicilian",
+      "candidate_color": "black",
+      "record": "W",
+      "termination": "checkmate",
+      "fen": "rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq - 0 6",
+      "plies": 60
+    },
+    {
+      "opening": "english",
+      "candidate_color": "white",
+      "record": "W",
+      "termination": "checkmate",
+      "fen": "rnbqkb1r/ppp2ppp/1n6/4p3/8/2N3P1/PP1PPPBP/R1BQK1NR w KQkq - 2 6",
+      "plies": 31
+    },
+    {
+      "opening": "english",
+      "candidate_color": "black",
+      "record": "W",
+      "termination": "checkmate",
+      "fen": "rnbqkb1r/ppp2ppp/1n6/4p3/8/2N3P1/PP1PPPBP/R1BQK1NR w KQkq - 2 6",
+      "plies": 68
+    }
+  ],
+  "totals": {
+    "W": 8
+  }
+}
