@@ -1,0 +1,79 @@
+{
+  "agent_sha256": "c77e29520d4b390f2bf6863faa736be300cfc84fbf7839ca9ba91255811e48e3",
+  "source_sha256": "b9c323293dcc5799d3b0a9a57d496cb9277126c7ab253db1d270b7529936cf57",
+  "max_depth": 6,
+  "seconds": 20.0,
+  "method": "Serial cold-table searches with the agent's available real-game history. Scores are side-to-move centipawns, not an external ground truth. Leaf fixes are present in all candidate variants; Horst is the frozen control.",
+  "positions": [
+    {
+      "game": 6,
+      "turn": "9...",
+      "fen": "rn1qkb1r/1p1b1ppp/p2p1n2/3Np1B1/2BNP3/5P2/PPP3PP/R2QK2R b KQkq - 1 9",
+      "played": "h6",
+      "original_depth": 6.0,
+      "original_seconds": 2.815950290998444,
+      "legacy_static": 48,
+      "candidate_static": 48,
+      "variants": {
+        "horst": {
+          "move": "h7h6",
+          "score": 37,
+          "depth": 6,
+          "nodes": 873422,
+          "tt_hits": 8485,
+          "seconds": 4.96508258295944,
+          "nps": 175912,
+          "san": "h6"
+        },
+        "leaf_fixes": {
+          "move": "h7h6",
+          "score": 37,
+          "depth": 6,
+          "nodes": 873656,
+          "tt_hits": 8485,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.0927907080040313,
+          "nps": 282481,
+          "san": "h6"
+        },
+        "pvs_only": {
+          "move": "h7h6",
+          "score": 37,
+          "depth": 6,
+          "nodes": 785944,
+          "tt_hits": 11588,
+          "pvs_probes": 3811,
+          "pvs_researches": 76,
+          "seconds": 2.7757216669851914,
+          "nps": 283149,
+          "san": "h6"
+        },
+        "passers_only": {
+          "move": "h7h6",
+          "score": 37,
+          "depth": 6,
+          "nodes": 920305,
+          "tt_hits": 8818,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.272805749962572,
+          "nps": 281197,
+          "san": "h6"
+        },
+        "candidate": {
+          "move": "h7h6",
+          "score": 37,
+          "depth": 6,
+          "nodes": 789195,
+          "tt_hits": 11634,
+          "pvs_probes": 3857,
+          "pvs_researches": 73,
+          "seconds": 2.8006212079781108,
+          "nps": 281792,
+          "san": "h6"
+        }
+      }
+    }
+  ]
+}

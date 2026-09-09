@@ -893,3 +893,25 @@ other opponents and varied positions. The live rules specify a 90-second init
 budget, one AMD EPYC core, and a 600-ply draw; the repository harness remains an
 older local approximation with a stricter init limit. Platform upload validation
 is authoritative.
+
+## Ian checkpoint (9 September 2026)
+
+The root agent is now preserved byte-for-byte under `past_models/Ian/agent.py`.
+Ian adds legal-move-count reuse in evaluation, checked quiescence beyond the
+ordinary cap, Principal Variation Search, and safer advanced-passer evaluation.
+
+Against Horst, the user-run paired-opening tests scored 5 wins and 3 losses at
+10+0.1, then 14 wins, 1 draw and 9 losses at 120+0.5. Neither series had technical
+failures. The verifier passed 2,955 positions and 92,581 make/undo transitions.
+
+The full-clock Sicilian results were poor (0-1-5). Forty-five follow-up searches
+found matching scores at equal depth across Horst and the candidate variants;
+the pawn-evaluation toggle changed none of the sampled decisions. One deeper
+search preferred `Bg5+` over castling, but required about 6.8 seconds in Ian.
+This supports investigating adaptive timing separately, not reverting PVS on
+the evidence available. These narrow samples do not establish an Elo gain.
+
+The user approved Ian and requested its checkpoint, commit, integration into
+main, push and `agent.zip`. Both older local feature branches were already
+ancestors of main. The detailed results and caveats are in Ian's README;
+the 24-game exports and diagnostic reports are in `Testing Outcomes/`.

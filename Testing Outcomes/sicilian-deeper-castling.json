@@ -1,0 +1,79 @@
+{
+  "agent_sha256": "c77e29520d4b390f2bf6863faa736be300cfc84fbf7839ca9ba91255811e48e3",
+  "source_sha256": "b9c323293dcc5799d3b0a9a57d496cb9277126c7ab253db1d270b7529936cf57",
+  "max_depth": 7,
+  "seconds": 20.0,
+  "method": "Serial cold-table searches with the agent's available real-game history. Scores are side-to-move centipawns, not an external ground truth. Leaf fixes are present in all candidate variants; Horst is the frozen control.",
+  "positions": [
+    {
+      "game": 6,
+      "turn": "13...",
+      "fen": "rn1qk2r/1p1bbpp1/p2p3p/3Q4/2B1P2B/5P2/PPP3PP/2KR3R b kq - 0 13",
+      "played": "O-O",
+      "original_depth": 6.0,
+      "original_seconds": 2.5924256250145845,
+      "legacy_static": 236,
+      "candidate_static": 236,
+      "variants": {
+        "horst": {
+          "move": "e7g5",
+          "score": 116,
+          "depth": 7,
+          "nodes": 1941935,
+          "tt_hits": 21893,
+          "seconds": 10.520904749981128,
+          "nps": 184578,
+          "san": "Bg5+"
+        },
+        "leaf_fixes": {
+          "move": "e7g5",
+          "score": 116,
+          "depth": 7,
+          "nodes": 1942781,
+          "tt_hits": 21893,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 6.679110541997943,
+          "nps": 290874,
+          "san": "Bg5+"
+        },
+        "pvs_only": {
+          "move": "e7g5",
+          "score": 116,
+          "depth": 7,
+          "nodes": 1941567,
+          "tt_hits": 29957,
+          "pvs_probes": 6279,
+          "pvs_researches": 137,
+          "seconds": 6.711507875006646,
+          "nps": 289289,
+          "san": "Bg5+"
+        },
+        "passers_only": {
+          "move": "e7g5",
+          "score": 116,
+          "depth": 7,
+          "nodes": 1940599,
+          "tt_hits": 21874,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 6.6785212910035625,
+          "nps": 290573,
+          "san": "Bg5+"
+        },
+        "candidate": {
+          "move": "e7g5",
+          "score": 116,
+          "depth": 7,
+          "nodes": 1950284,
+          "tt_hits": 30141,
+          "pvs_probes": 6349,
+          "pvs_researches": 130,
+          "seconds": 6.763506582996342,
+          "nps": 288353,
+          "san": "Bg5+"
+        }
+      }
+    }
+  ]
+}

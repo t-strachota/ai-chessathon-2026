@@ -78,8 +78,11 @@ measurements caused by running its benchmarks alongside its matches.
 ## Engine tools
 
 Run correctness verification or the one-second search benchmark from the GUI.
-These target the working agent and frozen Gabriel, independently of the match
-selectors. Output streams into the console and is saved to timestamped `.log`
+Verification targets the working agent, with Gabriel retained only as a reference
+for the legacy evaluation. Benchmarks compare the candidate against frozen Horst,
+and isolate PVS and passer-safety evaluation, independently of the match selectors.
+Reports include PVS probe and full re-search counts. Output streams into the console
+and is saved to timestamped `.log`
 files; benchmarks also save a JSON report. Cancel tool terminates a running lab
 job. A failed command is shown as failed, never as a successful verification.
 
@@ -88,7 +91,7 @@ CLI equivalents:
 ```sh
 v-env/bin/python -m match_maker.lab.verify
 v-env/bin/python -m match_maker.lab.benchmark --seconds 1 --out match_maker/results/benchmark.json
-v-env/bin/python -m match_maker.lab.series --openings 4 --base-ms 120000 --increment-ms 500 --out match_maker/results/series
+v-env/bin/python -m match_maker.lab.series --opponent past_models/Horst --openings 4 --base-ms 120000 --increment-ms 500 --out match_maker/results/series
 ```
 
 The original `python -m engine_lab.verify`, `.benchmark`, and `.series` commands

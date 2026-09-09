@@ -1,50 +1,20 @@
-"""Compare search speed and ordering/TT variants without modifying the harness."""
+"""Compare Horst with isolated PVS and passer-evaluation changes."""
 
 import argparse
 import json
-import time
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
 
 import chess
 
 import agent
 from match_maker.lab.verify import POSITIONS
-from past_models.Gabriel import agent as gabriel
+from past_models.Horst import agent as horst
 
 
 def baseline(board: chess.Board, seconds: float) -> dict[str, Any]:
-    counts = {"nodes": 0, "depth": 0}
-    original_ab, original_q, original_root = (
-        gabriel.alpha_beta,
-        gabriel.quiescence,
-        gabriel.search_at_depth,
-    )
-
-    def count_ab(*args: Any, **kwargs: Any) -> int:
-        counts["nodes"] += 1
-        return original_ab(*args, **kwargs)
-
-    def count_q(*args: Any, **kwargs: Any) -> int:
-        counts["nodes"] += 1
-        return original_q(*args, **kwargs)
-
-    def count_root(*args: Any, **kwargs: Any) -> chess.Move:
-        result = original_root(*args, **kwargs)
-        counts["depth"] = args[2]
-        return result
-
-    gabriel._POSITION_COUNTS.clear()
-    start = time.monotonic()
-    with (
-        patch.object(gabriel, "alpha_beta", count_ab),
-        patch.object(gabriel, "quiescence", count_q),
-        patch.object(gabriel, "search_at_depth", count_root),
-    ):
-        move = gabriel.get_move(board.fen(), int(seconds * 40000 + 100))
-    elapsed = time.monotonic() - start
-    return dict(move=move, **counts, seconds=elapsed, nps=int(counts["nodes"] / elapsed))
+    horst.clear_tables()
+    return horst.analyze(board, seconds=seconds)
 
 
 def main() -> None:
@@ -55,30 +25,29 @@ def main() -> None:
     report: dict[str, Any] = {
         "seconds_per_search": args.seconds,
         "init_seconds": agent.INIT_SECONDS,
-        "note": (
-            "Gabriel nodes count alpha-beta and quiescence entries; instrumentation adds overhead."
-        ),
+        "note": "Serial, cold-table searches. Compare scores only within the same evaluator.",
         "positions": [],
     }
     for name in ("start", "castle", "ep", "promotion", "knight", "mopup", "clock"):
         board = chess.Board(POSITIONS[name])
         old = baseline(board, args.seconds)
         modes = {}
-        for label, tt, ordering in (
-            ("unordered", 0, False),
-            ("ordered", 0, True),
-            ("move_table", 1, True),
-            ("score_table", 2, True),
+        for label, pvs, safe_passers in (
+            ("leaf_fixes", False, False),
+            ("pvs_only", True, False),
+            ("passers_only", False, True),
+            ("candidate", True, True),
         ):
             agent.clear_tables()
-            modes[label] = agent.analyze(board, args.seconds, tt_mode=tt, ordering=ordering)
-        record = dict(name=name, fen=board.fen(), gabriel=old, compiled=modes)
+            modes[label] = agent.analyze(board, args.seconds, pvs=pvs, safe_passers=safe_passers)
+        record = dict(name=name, fen=board.fen(), horst=old, compiled=modes)
         report["positions"].append(record)
-        final = modes["score_table"]
+        final = modes["candidate"]
         print(
-            f"{name}: Gabriel d{old['depth']} {old['nps']:,} entries/s; "
-            f"compiled d{final['depth']} {final['nps']:,} nodes/s, "
-            f"move {final['move']}, TT hits {final['tt_hits']}",
+            f"{name}: Horst d{old['depth']} {old['nps']:,} nodes/s; "
+            f"candidate d{final['depth']} {final['nps']:,} nodes/s, "
+            f"move {final['move']}, PVS re-searches "
+            f"{final['pvs_researches']}/{final['pvs_probes']}",
             flush=True,
         )
     args.out.parent.mkdir(parents=True, exist_ok=True)

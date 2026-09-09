@@ -537,7 +537,7 @@ class MatchMakerApp:
         ttk.Label(
             parent,
             text="Run checks here, without leaving the app. Jobs and matches run one at a time.\n"
-            "These tools target the working agent and frozen Gabriel—not the match selectors.",
+            "Verification targets the working agent; benchmarks compare it with frozen Horst.",
             style="Subtitle.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(8, 22))
         cards = ttk.Frame(parent)
@@ -547,12 +547,12 @@ class MatchMakerApp:
             (
                 (
                     "01 / Correctness",
-                    "Legal moves, special rules, draw handling,\nTT bounds and timeout safety.",
+                    "Legal moves, draws, PVS and TT bounds,\npasser safety and check evasions.",
                     "verify",
                 ),
                 (
                     "02 / Search benchmark",
-                    "One-second positions against Gabriel.\nCompare ordering and table variants.",
+                    "One-second positions against Horst.\nCompare PVS and passer safety.",
                     "benchmark",
                 ),
             )
@@ -611,9 +611,9 @@ class MatchMakerApp:
             self.start_button.configure(state=tk.DISABLED)
             return
         self.competitor_a_var.set(names[0])
-        gabriel = "Past model / Gabriel"
+        horst = "Past model / Horst"
         self.competitor_b_var.set(
-            gabriel if gabriel in self.models else names[min(1, len(names) - 1)]
+            horst if horst in self.models else names[min(1, len(names) - 1)]
         )
 
     def _set_fast_timing(self) -> None:

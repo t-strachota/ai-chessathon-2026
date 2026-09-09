@@ -1,0 +1,499 @@
+{
+  "agent_sha256": "c77e29520d4b390f2bf6863faa736be300cfc84fbf7839ca9ba91255811e48e3",
+  "source_sha256": "b9c323293dcc5799d3b0a9a57d496cb9277126c7ab253db1d270b7529936cf57",
+  "max_depth": 32,
+  "seconds": 3.0,
+  "method": "Serial cold-table searches with the agent's available real-game history. Scores are side-to-move centipawns, not an external ground truth. Leaf fixes are present in all candidate variants; Horst is the frozen control.",
+  "positions": [
+    {
+      "game": 5,
+      "turn": "9.",
+      "fen": "rn1qkb1r/1p1b1ppp/p2p1n2/4p1B1/2BNP3/2N2P2/PPP3PP/R2QK2R w KQkq - 0 9",
+      "played": "Nd5",
+      "original_depth": 5.0,
+      "original_seconds": 2.815412833006121,
+      "legacy_static": 256,
+      "candidate_static": 256,
+      "variants": {
+        "horst": {
+          "move": "c3d5",
+          "score": -23,
+          "depth": 5,
+          "nodes": 524032,
+          "tt_hits": 4185,
+          "seconds": 3.000199042027816,
+          "nps": 174665,
+          "san": "Nd5"
+        },
+        "leaf_fixes": {
+          "move": "c3d5",
+          "score": -23,
+          "depth": 5,
+          "nodes": 849408,
+          "tt_hits": 9717,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.0005125000025146,
+          "nps": 283087,
+          "san": "Nd5"
+        },
+        "pvs_only": {
+          "move": "c3d5",
+          "score": -23,
+          "depth": 5,
+          "nodes": 838656,
+          "tt_hits": 12014,
+          "pvs_probes": 6586,
+          "pvs_researches": 155,
+          "seconds": 3.000776374945417,
+          "nps": 279479,
+          "san": "Nd5"
+        },
+        "passers_only": {
+          "move": "c3d5",
+          "score": -23,
+          "depth": 5,
+          "nodes": 841472,
+          "tt_hits": 9621,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.000127082981635,
+          "nps": 280478,
+          "san": "Nd5"
+        },
+        "candidate": {
+          "move": "c3d5",
+          "score": -23,
+          "depth": 5,
+          "nodes": 831488,
+          "tt_hits": 11689,
+          "pvs_probes": 6302,
+          "pvs_researches": 143,
+          "seconds": 3.000704834004864,
+          "nps": 277097,
+          "san": "Nd5"
+        }
+      }
+    },
+    {
+      "game": 5,
+      "turn": "17.",
+      "fen": "r3kbr1/1p5p/p2ppB2/n7/4P1P1/5P2/PPP4P/R3K2R w KQq - 0 17",
+      "played": "Ke2",
+      "original_depth": 6.0,
+      "original_seconds": 2.3911752499989234,
+      "legacy_static": 64,
+      "candidate_static": 64,
+      "variants": {
+        "horst": {
+          "move": "e1e2",
+          "score": -4,
+          "depth": 6,
+          "nodes": 622848,
+          "tt_hits": 6276,
+          "seconds": 3.0011931670014746,
+          "nps": 207533,
+          "san": "Ke2"
+        },
+        "leaf_fixes": {
+          "move": "e1e2",
+          "score": -4,
+          "depth": 6,
+          "nodes": 965632,
+          "tt_hits": 8615,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.000682207988575,
+          "nps": 321804,
+          "san": "Ke2"
+        },
+        "pvs_only": {
+          "move": "e1e2",
+          "score": -4,
+          "depth": 6,
+          "nodes": 997632,
+          "tt_hits": 17754,
+          "pvs_probes": 12979,
+          "pvs_researches": 319,
+          "seconds": 3.000287833972834,
+          "nps": 332512,
+          "san": "Ke2"
+        },
+        "passers_only": {
+          "move": "e1e2",
+          "score": -4,
+          "depth": 6,
+          "nodes": 977152,
+          "tt_hits": 9032,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.0009114160202444,
+          "nps": 325618,
+          "san": "Ke2"
+        },
+        "candidate": {
+          "move": "e1e2",
+          "score": -4,
+          "depth": 6,
+          "nodes": 1001216,
+          "tt_hits": 17347,
+          "pvs_probes": 10928,
+          "pvs_researches": 302,
+          "seconds": 3.000740208022762,
+          "nps": 333656,
+          "san": "Ke2"
+        }
+      }
+    },
+    {
+      "game": 5,
+      "turn": "25.",
+      "fen": "r4r2/3k4/p1np4/1p2p2p/4P1Pb/P1BR1P2/1PP3KP/7R w - - 0 25",
+      "played": "Be1",
+      "original_depth": 6.0,
+      "original_seconds": 2.044640709005762,
+      "legacy_static": -10,
+      "candidate_static": -10,
+      "variants": {
+        "horst": {
+          "move": "c3e1",
+          "score": -40,
+          "depth": 6,
+          "nodes": 611072,
+          "tt_hits": 7092,
+          "seconds": 3.0009579170146026,
+          "nps": 203625,
+          "san": "Be1"
+        },
+        "leaf_fixes": {
+          "move": "c3e1",
+          "score": -40,
+          "depth": 6,
+          "nodes": 951040,
+          "tt_hits": 11362,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.0004716670373455,
+          "nps": 316963,
+          "san": "Be1"
+        },
+        "pvs_only": {
+          "move": "c3e1",
+          "score": -40,
+          "depth": 6,
+          "nodes": 968448,
+          "tt_hits": 15262,
+          "pvs_probes": 7809,
+          "pvs_researches": 249,
+          "seconds": 3.000645041000098,
+          "nps": 322746,
+          "san": "Be1"
+        },
+        "passers_only": {
+          "move": "c3e1",
+          "score": -40,
+          "depth": 6,
+          "nodes": 927488,
+          "tt_hits": 10673,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.0004158330266364,
+          "nps": 309119,
+          "san": "Be1"
+        },
+        "candidate": {
+          "move": "c3e1",
+          "score": -40,
+          "depth": 6,
+          "nodes": 971264,
+          "tt_hits": 14727,
+          "pvs_probes": 7894,
+          "pvs_researches": 235,
+          "seconds": 3.0004480419447646,
+          "nps": 323706,
+          "san": "Be1"
+        }
+      }
+    },
+    {
+      "game": 6,
+      "turn": "9...",
+      "fen": "rn1qkb1r/1p1b1ppp/p2p1n2/3Np1B1/2BNP3/5P2/PPP3PP/R2QK2R b KQkq - 1 9",
+      "played": "h6",
+      "original_depth": 6.0,
+      "original_seconds": 2.815950290998444,
+      "legacy_static": 48,
+      "candidate_static": 48,
+      "variants": {
+        "horst": {
+          "move": "e5d4",
+          "score": 83,
+          "depth": 5,
+          "nodes": 512256,
+          "tt_hits": 4938,
+          "seconds": 3.000020959007088,
+          "nps": 170750,
+          "san": "exd4"
+        },
+        "leaf_fixes": {
+          "move": "e5d4",
+          "score": 83,
+          "depth": 5,
+          "nodes": 848128,
+          "tt_hits": 8374,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.000662083970383,
+          "nps": 282646,
+          "san": "exd4"
+        },
+        "pvs_only": {
+          "move": "h7h6",
+          "score": 37,
+          "depth": 6,
+          "nodes": 851200,
+          "tt_hits": 12669,
+          "pvs_probes": 4487,
+          "pvs_researches": 98,
+          "seconds": 3.0003556659794413,
+          "nps": 283699,
+          "san": "h6"
+        },
+        "passers_only": {
+          "move": "e5d4",
+          "score": 83,
+          "depth": 5,
+          "nodes": 840704,
+          "tt_hits": 8204,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.000591624993831,
+          "nps": 280179,
+          "san": "exd4"
+        },
+        "candidate": {
+          "move": "h7h6",
+          "score": 37,
+          "depth": 6,
+          "nodes": 845312,
+          "tt_hits": 12024,
+          "pvs_probes": 4601,
+          "pvs_researches": 99,
+          "seconds": 3.0003411659854464,
+          "nps": 281738,
+          "san": "h6"
+        }
+      }
+    },
+    {
+      "game": 6,
+      "turn": "12...",
+      "fen": "rn1qk2r/1p1bbpp1/p2p1n1p/3N4/2BQP2B/5P2/PPP3PP/2KR3R b kq - 2 12",
+      "played": "Nxd5",
+      "original_depth": 6.0,
+      "original_seconds": 2.6468059589969926,
+      "legacy_static": 244,
+      "candidate_static": 244,
+      "variants": {
+        "horst": {
+          "move": "f6d5",
+          "score": 105,
+          "depth": 6,
+          "nodes": 526336,
+          "tt_hits": 3599,
+          "seconds": 3.0002757079782896,
+          "nps": 175429,
+          "san": "Nxd5"
+        },
+        "leaf_fixes": {
+          "move": "f6d5",
+          "score": 105,
+          "depth": 6,
+          "nodes": 809216,
+          "tt_hits": 7342,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.00111279200064,
+          "nps": 269638,
+          "san": "Nxd5"
+        },
+        "pvs_only": {
+          "move": "f6d5",
+          "score": 105,
+          "depth": 6,
+          "nodes": 813824,
+          "tt_hits": 8969,
+          "pvs_probes": 1584,
+          "pvs_researches": 28,
+          "seconds": 3.0001763749751262,
+          "nps": 271258,
+          "san": "Nxd5"
+        },
+        "passers_only": {
+          "move": "f6d5",
+          "score": 105,
+          "depth": 6,
+          "nodes": 807424,
+          "tt_hits": 7354,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.000419415999204,
+          "nps": 269103,
+          "san": "Nxd5"
+        },
+        "candidate": {
+          "move": "f6d5",
+          "score": 105,
+          "depth": 6,
+          "nodes": 812544,
+          "tt_hits": 8961,
+          "pvs_probes": 1584,
+          "pvs_researches": 28,
+          "seconds": 3.0005855000345036,
+          "nps": 270795,
+          "san": "Nxd5"
+        }
+      }
+    },
+    {
+      "game": 6,
+      "turn": "13...",
+      "fen": "rn1qk2r/1p1bbpp1/p2p3p/3Q4/2B1P2B/5P2/PPP3PP/2KR3R b kq - 0 13",
+      "played": "O-O",
+      "original_depth": 6.0,
+      "original_seconds": 2.5924256250145845,
+      "legacy_static": 236,
+      "candidate_static": 236,
+      "variants": {
+        "horst": {
+          "move": "e8g8",
+          "score": 82,
+          "depth": 6,
+          "nodes": 549120,
+          "tt_hits": 5068,
+          "seconds": 3.0008133749943227,
+          "nps": 182990,
+          "san": "O-O"
+        },
+        "leaf_fixes": {
+          "move": "e8g8",
+          "score": 82,
+          "depth": 6,
+          "nodes": 853248,
+          "tt_hits": 7896,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.0004915409954265,
+          "nps": 284369,
+          "san": "O-O"
+        },
+        "pvs_only": {
+          "move": "e8g8",
+          "score": 82,
+          "depth": 6,
+          "nodes": 854272,
+          "tt_hits": 9638,
+          "pvs_probes": 4086,
+          "pvs_researches": 89,
+          "seconds": 3.0006389589980245,
+          "nps": 284696,
+          "san": "O-O"
+        },
+        "passers_only": {
+          "move": "e8g8",
+          "score": 82,
+          "depth": 6,
+          "nodes": 853760,
+          "tt_hits": 7912,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.0002121250145137,
+          "nps": 284566,
+          "san": "O-O"
+        },
+        "candidate": {
+          "move": "e8g8",
+          "score": 82,
+          "depth": 6,
+          "nodes": 854016,
+          "tt_hits": 9524,
+          "pvs_probes": 4398,
+          "pvs_researches": 100,
+          "seconds": 3.000442375021521,
+          "nps": 284630,
+          "san": "O-O"
+        }
+      }
+    },
+    {
+      "game": 6,
+      "turn": "14...",
+      "fen": "rn1q1rk1/1Q1bbpp1/p2p3p/8/2B1P2B/5P2/PPP3PP/2KR3R b - - 0 14",
+      "played": "Bxh4",
+      "original_depth": 6.0,
+      "original_seconds": 2.5401083750184625,
+      "legacy_static": 170,
+      "candidate_static": 170,
+      "variants": {
+        "horst": {
+          "move": "e7h4",
+          "score": 20,
+          "depth": 6,
+          "nodes": 581888,
+          "tt_hits": 3962,
+          "seconds": 3.001348582969513,
+          "nps": 193875,
+          "san": "Bxh4"
+        },
+        "leaf_fixes": {
+          "move": "e7h4",
+          "score": 20,
+          "depth": 6,
+          "nodes": 919808,
+          "tt_hits": 6710,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.0006636250182055,
+          "nps": 306534,
+          "san": "Bxh4"
+        },
+        "pvs_only": {
+          "move": "e7h4",
+          "score": 20,
+          "depth": 6,
+          "nodes": 903680,
+          "tt_hits": 10538,
+          "pvs_probes": 6773,
+          "pvs_researches": 186,
+          "seconds": 3.000010708987247,
+          "nps": 301225,
+          "san": "Bxh4"
+        },
+        "passers_only": {
+          "move": "e7h4",
+          "score": 20,
+          "depth": 6,
+          "nodes": 917504,
+          "tt_hits": 6691,
+          "pvs_probes": 0,
+          "pvs_researches": 0,
+          "seconds": 3.0005037920200266,
+          "nps": 305783,
+          "san": "Bxh4"
+        },
+        "candidate": {
+          "move": "e7h4",
+          "score": 20,
+          "depth": 6,
+          "nodes": 906496,
+          "tt_hits": 10554,
+          "pvs_probes": 6696,
+          "pvs_researches": 183,
+          "seconds": 3.000026917026844,
+          "nps": 302162,
+          "san": "Bxh4"
+        }
+      }
+    }
+  ]
+}

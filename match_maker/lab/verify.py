@@ -55,11 +55,16 @@ def check_position(board: chess.Board) -> int:
     assert np.array_equal(pos, original)
     assert agent.insufficient(pos) == board.is_insufficient_material(), board.fen()
     if not board.is_game_over():
-        assert agent.evaluate(pos) == gabriel.position_score(board, board.turn), (
+        # The compatibility evaluator must still match Gabriel. The candidate
+        # deliberately changes passer scores, so test it separately below.
+        legacy_score = agent.evaluate(pos, len(moves), False)
+        assert legacy_score == gabriel.position_score(board, board.turn), (
             board.fen(),
-            agent.evaluate(pos),
+            legacy_score,
             gabriel.position_score(board, board.turn),
         )
+        assert agent.evaluate(pos, len(moves)) == agent.evaluate(pos), board.fen()
+        assert agent.evaluate(pos) == agent.evaluate(agent.encode(board.mirror())), board.fen()
     for move in moves:
         undo = agent.make_move(pos, int(move))
         board.push_uci(agent.uci(int(move)))
@@ -100,8 +105,8 @@ def check_search() -> None:
     for name in ("start", "ep", "promotion", "knight", "clock"):
         board = chess.Board(POSITIONS[name])
         agent.clear_tables()
-        reference = agent.analyze(board, seconds=20, max_depth=3, tt_mode=0)
-        for mode in (1, 2):
+        reference = agent.analyze(board, seconds=20, max_depth=3, tt_mode=0, pvs=False)
+        for mode in (0, 1, 2):
             agent.clear_tables()
             result = agent.analyze(board, seconds=20, max_depth=3, tt_mode=mode)
             assert result["depth"] == 3 or abs(result["score"]) >= agent.MATE - agent.MAX_PLY
@@ -149,7 +154,13 @@ def check_search() -> None:
 
 
 def raw_search(
-    board: chess.Board, alpha: int, beta: int, ply: int = 0, extensions: int = 3
+    board: chess.Board,
+    alpha: int,
+    beta: int,
+    ply: int = 0,
+    extensions: int = 3,
+    depth: int = 3,
+    qleft: int = 6,
 ) -> tuple[int, int]:
     pos = agent.encode(board)
     history = np.zeros(100, dtype=np.uint64)
@@ -157,12 +168,12 @@ def raw_search(
     stats = np.zeros(3, dtype=np.int64)
     score, _ = agent.search(
         pos,
-        3,
+        depth,
         alpha,
         beta,
         ply,
         extensions,
-        6,
+        qleft,
         history,
         1,
         history[0],
@@ -180,7 +191,51 @@ def raw_search(
         True,
     )
     assert not stats[1]
+    assert np.array_equal(pos, agent.encode(board)), "Search failed to restore the board"
     return score, int(stats[2])
+
+
+def check_search_upgrade() -> None:
+    board = chess.Board("k7/8/8/8/8/8/4r3/3QK3 w - - 0 1")
+    assert board.is_valid() and board.is_check()
+    agent.clear_tables()
+    score, _ = raw_search(board, -agent.INF, agent.INF, depth=0, qleft=0)
+    assert score > agent.evaluate(agent.encode(board)) + 500, "Q cap missed the check evasion"
+    for name, expected in (("mate", -agent.MATE), ("stalemate", 0)):
+        score, _ = raw_search(chess.Board(POSITIONS[name]), -agent.INF, agent.INF, depth=0, qleft=0)
+        assert score == expected
+
+    board = chess.Board("7k/3P4/8/8/8/8/8/1K6 w - - 0 1")
+    square = 6 * 16 + 3
+
+    def bonus(b: chess.Board) -> int:
+        assert b.is_valid(), b.fen()
+        return agent.passer_bonus(agent.encode(b), square, 1)
+
+    free = bonus(board)
+    assert free == 500
+    blocked = board.copy()
+    blocked.set_piece_at(chess.D8, chess.Piece(chess.ROOK, chess.BLACK))
+    assert bonus(blocked) < free
+    controlled = board.copy()
+    controlled.set_piece_at(chess.E8, chess.Piece(chess.ROOK, chess.BLACK))
+    assert bonus(controlled) < free
+    threatened = board.copy()
+    threatened.set_piece_at(chess.H7, chess.Piece(chess.ROOK, chess.BLACK))
+    vulnerable = bonus(threatened)
+    threatened.set_piece_at(chess.D1, chess.Piece(chess.ROOK, chess.WHITE))
+    assert vulnerable < bonus(threatened) <= free
+
+    # Changing diagnostic evaluator settings must invalidate cached scores.
+    agent.analyze(blocked, seconds=10, max_depth=2, safe_passers=False)
+    switched = agent.analyze(blocked, seconds=10, max_depth=2)
+    agent.clear_tables()
+    fresh = agent.analyze(blocked, seconds=10, max_depth=2)
+    assert switched["depth"] == fresh["depth"] == 2
+    assert switched["score"] == fresh["score"]
+    probe = agent.analyze(chess.Board(), seconds=10, max_depth=3, tt_mode=0)
+    assert probe["depth"] == 3 and probe["pvs_probes"] > 0
+    assert 0 <= probe["pvs_researches"] <= probe["pvs_probes"]
 
 
 def check_table_bounds() -> None:
@@ -250,9 +305,11 @@ def main() -> None:
     check_draws()
     check_search()
     check_table_bounds()
+    check_search_upgrade()
     print(
         f"PASS: {positions} positions, {transitions} make/undo transitions, "
-        f"draws, TT equivalence, timeout restoration; {time.monotonic() - start:.1f}s"
+        f"draws, PVS/TT equivalence, passer safety, checked quiescence, "
+        f"timeout restoration; {time.monotonic() - start:.1f}s"
     )
 
 
