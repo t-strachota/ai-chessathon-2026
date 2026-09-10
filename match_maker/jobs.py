@@ -24,7 +24,7 @@ def run_job(
     module = "match_maker.lab.verify" if kind == "verify" else "match_maker.lab.benchmark"
     command = [sys.executable, "-u", "-m", module]
     if kind != "verify":
-        command += ["--seconds", "1", "--out", str(output.with_suffix(".json"))]
+        command += ["--seconds", "3", "--out", str(output.with_suffix(".json"))]
     process: subprocess.Popen[str] | None = None
     done = threading.Event()
     try:

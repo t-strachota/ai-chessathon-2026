@@ -30,7 +30,17 @@ class DiagnosticAgent(Agent):
                     self.stats = {
                         key: float(value)
                         for key, value in stats.items()
-                        if key in {"depth", "nodes", "tt_hits", "nps", "seconds"}
+                        if key
+                        in {
+                            "depth",
+                            "nodes",
+                            "tt_hits",
+                            "nps",
+                            "seconds",
+                            "normal_seconds",
+                            "hard_seconds",
+                            "extended",
+                        }
                         and type(value) in (int, float)
                         and math.isfinite(value)
                         and 0 <= value < 1e18

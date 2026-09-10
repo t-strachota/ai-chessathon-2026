@@ -77,11 +77,20 @@ measurements caused by running its benchmarks alongside its matches.
 
 ## Engine tools
 
-Run correctness verification or the one-second search benchmark from the GUI.
+Run correctness verification or the adaptive timing benchmark from the GUI.
 Verification targets the working agent, with Gabriel retained only as a reference
-for the legacy evaluation. Benchmarks compare the candidate against frozen Horst,
-and isolate PVS and passer-safety evaluation, independently of the match selectors.
-Reports include PVS probe and full re-search counts. Output streams into the console
+for the legacy evaluation. Benchmarks compare the candidate against frozen Ian,
+independently of the match selectors. Ian gets three seconds; adaptive timing
+uses the corresponding remaining clock with a normal allowance near three seconds
+and a hard limit near nine seconds. It may finish earlier or spend longer.
+Reports include per-depth moves, scores, elapsed time, targets and enforced deadlines.
+The normal deadline applies unless a completed depth detects a move change or
+score drop. This extra-time permission expires after two completed iterations
+without another such signal. The absolute hard limit always remains in force.
+Game JSON/CSV exports include normal/hard allowances and whether search used
+explicitly granted extra time. Small polling overruns alone do not count as
+extensions; historical agents leave those fields empty.
+Output streams into the console
 and is saved to timestamped `.log`
 files; benchmarks also save a JSON report. Cancel tool terminates a running lab
 job. A failed command is shown as failed, never as a successful verification.
@@ -90,8 +99,8 @@ CLI equivalents:
 
 ```sh
 v-env/bin/python -m match_maker.lab.verify
-v-env/bin/python -m match_maker.lab.benchmark --seconds 1 --out match_maker/results/benchmark.json
-v-env/bin/python -m match_maker.lab.series --opponent past_models/Horst --openings 4 --base-ms 120000 --increment-ms 500 --out match_maker/results/series
+v-env/bin/python -m match_maker.lab.benchmark --seconds 3 --out match_maker/results/adaptive-benchmark.json
+v-env/bin/python -m match_maker.lab.series --opponent past_models/Ian --openings 4 --base-ms 120000 --increment-ms 500 --out match_maker/results/series
 ```
 
 The original `python -m engine_lab.verify`, `.benchmark`, and `.series` commands

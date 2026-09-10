@@ -537,7 +537,7 @@ class MatchMakerApp:
         ttk.Label(
             parent,
             text="Run checks here, without leaving the app. Jobs and matches run one at a time.\n"
-            "Verification targets the working agent; benchmarks compare it with frozen Horst.",
+            "Verification targets the working agent; benchmarks compare it with frozen Ian.",
             style="Subtitle.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(8, 22))
         cards = ttk.Frame(parent)
@@ -547,12 +547,12 @@ class MatchMakerApp:
             (
                 (
                     "01 / Correctness",
-                    "Legal moves, draws, PVS and TT bounds,\npasser safety and check evasions.",
+                    "Legal moves, draws, PVS and TT bounds,\nadaptive timing and deadline safety.",
                     "verify",
                 ),
                 (
                     "02 / Search benchmark",
-                    "One-second positions against Horst.\nCompare PVS and passer safety.",
+                    "Compare fixed and adaptive timing\nagainst Ian, including the Sicilian.",
                     "benchmark",
                 ),
             )
@@ -611,9 +611,9 @@ class MatchMakerApp:
             self.start_button.configure(state=tk.DISABLED)
             return
         self.competitor_a_var.set(names[0])
-        horst = "Past model / Horst"
+        ian = "Past model / Ian"
         self.competitor_b_var.set(
-            horst if horst in self.models else names[min(1, len(names) - 1)]
+            ian if ian in self.models else names[min(1, len(names) - 1)]
         )
 
     def _set_fast_timing(self) -> None:

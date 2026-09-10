@@ -26,7 +26,16 @@ def main() -> None:
         reported = getattr(agent, "LAST_SEARCH", {})
         stats = {}
         if isinstance(reported, dict):
-            for name in ("depth", "nodes", "tt_hits", "nps", "seconds"):
+            for name in (
+                "depth",
+                "nodes",
+                "tt_hits",
+                "nps",
+                "seconds",
+                "normal_seconds",
+                "hard_seconds",
+                "extended",
+            ):
                 value = reported.get(name)
                 if isinstance(value, (int, float)) and math.isfinite(value) and 0 <= value < 1e18:
                     stats[name] = value

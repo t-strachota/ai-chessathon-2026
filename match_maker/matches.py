@@ -80,6 +80,9 @@ class MoveRecord:
     capture: bool
     check: bool
     promotion: bool
+    normal_seconds: float | None = None
+    hard_seconds: float | None = None
+    extended: float | None = None
 
 
 @dataclass(frozen=True)
@@ -348,6 +351,9 @@ def _play_game(
                 capture,
                 board.is_check(),
                 move.promotion is not None,
+                normal_seconds=stats.get("normal_seconds"),
+                hard_seconds=stats.get("hard_seconds"),
+                extended=stats.get("extended"),
             )
             records.append(record)
             callback(

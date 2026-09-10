@@ -2,6 +2,8 @@
 
 import random
 import time
+from typing import Any
+from unittest.mock import patch
 
 import chess
 import numpy as np
@@ -278,6 +280,76 @@ def check_table_bounds() -> None:
         assert elapsed < milliseconds / 1000, (milliseconds, elapsed)
 
 
+def check_timing() -> None:
+    for clock in (0, 10, 50, 100, 500, 1000, 10000, 120000):
+        normal, hard = agent.time_budget(clock)
+        assert 0 <= normal <= hard <= 9
+        if clock > 0:
+            assert hard * 1000 < clock
+
+    def simulated(
+        unstable: bool,
+        change_move: bool = False,
+        durations: list[float] | None = None,
+        adaptive: bool = True,
+    ) -> dict[str, Any]:
+        now = [0.0]
+        steps = (
+            durations
+            if durations is not None
+            else ([0.2, 0.2, 0.4, 0.5, 2.0] if unstable else [0.1] * 10)
+        )
+
+        def fake_search(*args: Any) -> tuple[int, int]:
+            depth, stats, deadline = int(args[1]), args[10], float(args[11])
+            now[0] += steps[depth - 1]
+            if now[0] >= deadline:
+                now[0] = deadline
+                stats[1] = 1
+                return 0, 0
+            move = agent.pack(20, 52) if change_move and depth >= 3 else agent.pack(1, 34)
+            return (-80 if unstable and not change_move and depth >= 3 else 0), move
+
+        with (
+            patch.object(agent, "search", fake_search),
+            patch.object(time, "monotonic", side_effect=lambda: now[0]),
+        ):
+            return agent.analyze(
+                chess.Board(), seconds=3, soft_seconds=1 if adaptive else None, max_depth=10
+            )
+
+    stable = simulated(False)
+    assert stable["seconds"] < 1 and stable["depth"] >= 4
+    # An unexpectedly expensive iteration cannot spend unearned extra time.
+    slow = [0.2, 0.2, 0.4, 0.5, 2.0]
+    capped = simulated(False, durations=slow)
+    assert capped["seconds"] == 1 and capped["extended"] == 0
+    assert capped["depth"] == 3 and capped["move"] == "b1c3"
+    fixed = simulated(False, durations=slow, adaptive=False)
+    assert fixed["seconds"] == 3 and fixed["depth"] == 4
+    assert fixed["extended"] == 0
+    for change in (False, True):
+        unstable = simulated(True, change)
+        assert unstable["seconds"] == 3 and unstable["extended"] == 1
+        assert unstable["depth"] == 4, "Timed-out iteration replaced the completed result"
+        assert unstable["move"] == ("e2e4" if change else "b1c3")
+    # Old instability expires after two completed iterations; it is not a
+    # permanent license to extend every subsequent depth in the same move.
+    settled = simulated(True, durations=[0.1, 0.1, 0.1, 0.1, 0.1, 2.0])
+    assert settled["seconds"] == 1 and settled["extended"] == 0
+    assert settled["depth"] == 5 and settled["score"] == -80
+
+    forced = chess.Board("7k/8/5K2/8/8/8/8/7R b - - 0 1")
+    assert forced.is_valid() and forced.legal_moves.count() == 1
+    with patch.object(agent, "analyze", side_effect=AssertionError("Unnecessary forced search")):
+        move = agent.get_move(forced.fen(), 120000)
+    assert chess.Move.from_uci(move) in forced.legal_moves
+    assert agent.LAST_SEARCH["nodes"] == 0
+    assert agent._HISTORY[-2] == int(agent.position_hash(agent.encode(forced)))
+    forced.push_uci(move)
+    assert agent._HISTORY[-1] == int(agent.position_hash(agent.encode(forced)))
+
+
 def main() -> None:
     start = time.monotonic()
     positions, transitions = 0, 0
@@ -306,10 +378,11 @@ def main() -> None:
     check_search()
     check_table_bounds()
     check_search_upgrade()
+    check_timing()
     print(
         f"PASS: {positions} positions, {transitions} make/undo transitions, "
         f"draws, PVS/TT equivalence, passer safety, checked quiescence, "
-        f"timeout restoration; {time.monotonic() - start:.1f}s"
+        f"adaptive timing and timeout restoration; {time.monotonic() - start:.1f}s"
     )
 
 

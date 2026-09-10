@@ -915,3 +915,22 @@ The user approved Ian and requested its checkpoint, commit, integration into
 main, push and `agent.zip`. Both older local feature branches were already
 ancestors of main. The detailed results and caveats are in Ian's README;
 the 24-game exports and diagnostic reports are in `Testing Outcomes/`.
+
+## John checkpoint (10 September 2026)
+
+The user approved the adaptive-timing candidate as John. The root is preserved
+byte-for-byte in `past_models/John/agent.py`; Ian remains the frozen comparison.
+Evaluation and compiled search are unchanged from Ian. The normal deadline now
+applies unless instability earns extra time, and that permission expires after
+two completed depths without another signal. Forced moves bypass search.
+
+The accepted smoke test scored 4 wins, 1 draw and 3 losses against Ian at 10+0.1.
+The 24-game 120+0.5 test scored 17 wins, 3 draws and 4 losses (77.08%), with no
+technical failures. All 844 smoke and 3,330 extended-test moves were verified.
+John used granted extra time on 55.3% of longer-test moves; its minimum remaining
+clock was 8.177 seconds. The English was the weakest opening (2-1-3).
+
+Results and limitations are documented in John's README. The accepted exports
+are in `Smoke Test Results/` and `extended test results/`. The earlier permissive
+timing experiment is superseded. The user requested the John checkpoint,
+`agent.zip`, a commit and a push; uploading to the competition remains manual.
