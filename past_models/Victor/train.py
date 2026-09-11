@@ -1,5 +1,5 @@
 """
-Trains MLP (multi-layer perceptron) from 768 nuerons to 1 neuron currently, to best predict
+Trains MLP (multi-layer perceptron) from 773 nuerons to 1 neuron currently, to best predict
 Stockfish evaluation if it were to play from the board position.
 
 Reads full_dataset.json, encodes/transforms positions from FEN, trains, and saves
@@ -39,13 +39,19 @@ CP_CLAMP = 1000  # positions beyond +- 1000 centipawns (score) are clamped
 # transform the rest of the fen
 def transform_fen(fen: str) -> np.ndarray:
     board = chess.Board(fen)
-    planes = np.zeros(768, dtype=np.float32)
+    vec = np.zeros(773, dtype=np.float32)
 
     for square, piece in board.piece_map().items():
         plane = PIECE_TO_DIGITS[piece.symbol()]
-        planes[plane * 64 + square] = 1.0
+        vec[plane * 64 + square] = 1.0
 
-    return planes
+    vec[768] = 1.0 if board.turn == chess.WHITE else 0.0
+    vec[769] = 1.0 if board.has_kingside_castling_rights(chess.WHITE) else 0.0
+    vec[770] = 1.0 if board.has_queenside_castling_rights(chess.WHITE) else 0.0
+    vec[771] = 1.0 if board.has_kingside_castling_rights(chess.BLACK) else 0.0
+    vec[772] = 1.0 if board.has_queenside_castling_rights(chess.BLACK) else 0.0
+
+    return vec
 
 
 class ChessDataset(Dataset):
@@ -85,16 +91,18 @@ class ChessDataset(Dataset):
 
 class EvalNet(nn.Module):
     """
-    The MLP. 768 inputs -> 256 -> 32 -> 1 output
+    The MLP. 773 inputs -> 512 -> 128 -> 32 -> 1 output
     Uses tanh, used predictions between [-1,1]
     """
 
     def __init__(self):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(768, 256),
+            nn.Linear(773, 512),
             nn.ReLU(),
-            nn.Linear(256, 32),
+            nn.Linear(512, 128),
+            nn.ReLU(),
+            nn.Linear(128, 32),
             nn.ReLU(),
             nn.Linear(32, 1),
             nn.Tanh(),
@@ -182,7 +190,7 @@ def train(dataset_path, epochs=10, batch_size=256, lr=1e-3, val_fraction=0.1):
 # Exports data into an onnx file format
 def export_onnx(model, path="eval_net.onnx"):
     model.eval()
-    temp_input = torch.zeros(1, 768)
+    temp_input = torch.zeros(1, 773)
     torch.onnx.export(
         model,
         temp_input,
